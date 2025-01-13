@@ -4,7 +4,7 @@ from .models import *
 class SystemOwnerSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemOwner
-        fields = ['uid', 'owner_name', 'email', 'username', 'password', 'is_active', 'created_at']
+        fields = ['id', 'owner_name', 'email', 'username', 'password', 'is_active', 'created_at']
         extra_kwargs = {
             'password': {'write_only': True},  # Password hidden in response
             'is_active': {'read_only': True},  # Prevent modification of `is_active`

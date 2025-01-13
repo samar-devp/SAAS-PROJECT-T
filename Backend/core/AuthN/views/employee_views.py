@@ -24,7 +24,7 @@ class EmployeeRegisterView(APIView):
                 return Response({"error": "Invalid user type."}, status=status.HTTP_400_BAD_REQUEST)
 
             data = request.data
-            if isinstance(user,Admin):
+            if isinstance(user, Admin):
                 data['admin'] = user.id  # Associate employee with the current user (Supervisor/Admin)
             else:
                 data['supervisor'] = user.id  # Associate employee with the current user (Supervisor/Admin)

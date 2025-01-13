@@ -46,7 +46,16 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    'AuthN',         
+    'AuthN',        
+    'WorkforceProfile',
+    'Holiday', 
+    'ServiceShift',
+    'ServiceWeekOff',
+    'WorkLog',
+    'Expenditure',
+    'UserActivity',
+    'ReportLog',
+    'PayrollSystem'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
