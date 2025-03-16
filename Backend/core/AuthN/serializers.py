@@ -1,46 +1,77 @@
 from rest_framework import serializers
-from .models import *
+from django.contrib.auth.hashers import make_password
+from .models import CustomUser, SystemOwnerProfile, OrganizationProfile, AdminProfile, UserProfile
 
-class SystemOwnerSerializer(serializers.ModelSerializer):
+
+class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SystemOwner
-        fields = ['id', 'owner_name', 'email', 'username', 'password', 'is_active', 'created_at']
-        extra_kwargs = {
-            'password': {'write_only': True},  # Password hidden in response
-            'is_active': {'read_only': True},  # Prevent modification of `is_active`
-            'created_at': {'read_only': True},  # Auto-generated field
-        }
-        
+        model = CustomUser
+        fields = ['id', 'email', 'username', 'password', 'role']
+        extra_kwargs = {'password': {'write_only': True}}
 
-class OrganizationSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        validated_data['password'] = make_password(validated_data['password'])  # Hash password
+        return CustomUser.objects.create(**validated_data)
+
+
+# System Owner Profile Serializer
+class SystemOwnerProfileSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer()
+
     class Meta:
-        model = Organization
-        fields = ['owner', 'organization_name', 'email', 'username', 'password']
-        extra_kwargs = {
-            'password': {'write_only': True},  # Password hidden in response
-        }
+        model = SystemOwnerProfile
+        fields = ['id', 'user', 'company_name']
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user_data['role'] = 'system_owner'
+        user = CustomUser.objects.create_user(**user_data)
+        return SystemOwnerProfile.objects.create(user=user, **validated_data)
 
 
-class AdminSerializer(serializers.ModelSerializer):
+# Organization Profile Serializer (FK to System Owner)
+class OrganizationProfileSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer()
+    system_owner = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+
     class Meta:
-        model = Admin
-        fields = ['organization', 'admin_name', 'email', 'username', 'password', 'is_active']
-        extra_kwargs = {
-            'password': {'write_only': True},  # Password will not be included in the response
-        }
+        model = OrganizationProfile
+        fields = ['id', 'user', 'organization_name', 'system_owner']
 
-class SupervisorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Supervisor
-        fields = ['admin', 'supervisor_name', 'email', 'username', 'password', 'is_active']
-        extra_kwargs = {
-            'password': {'write_only': True},  # Password will not be included in the response
-        }
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user_data['role'] = 'organization'
+        user = CustomUser.objects.create_user(**user_data)
+        return OrganizationProfile.objects.create(user=user, **validated_data)
 
-class EmployeeSerializer(serializers.ModelSerializer):
+
+# Admin Profile Serializer (FK to Organization)
+class AdminProfileSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer()
+    organization = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+
     class Meta:
-        model = Employee
-        fields = ['admin', 'supervisor', 'employee_name', 'email', 'username', 'password', 'is_active']
-        extra_kwargs = {
-            'password': {'write_only': True},  # Password will not be included in the response
-        }
+        model = AdminProfile
+        fields = ['id', 'user', 'admin_name', 'organization']
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user_data['role'] = 'admin'
+        user = CustomUser.objects.create_user(**user_data)
+        return AdminProfile.objects.create(user=user, **validated_data)
+
+
+# User Profile Serializer (FK to Admin)
+class UserProfileSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer()
+    admin = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+
+    class Meta:
+        model = UserProfile
+        fields = ['id', 'user', 'user_name', 'admin']
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user_data['role'] = 'user'
+        user = CustomUser.objects.create_user(**user_data)
+        return UserProfile.objects.create(user=user, **validated_data)

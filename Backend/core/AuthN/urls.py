@@ -1,28 +1,18 @@
 from django.urls import path
-from .views.system_views import *
-from .views.organization_views import *
-from .views.admin_views import *
-from .views.supervisor_views import *
-from .views.employee_views import *
+from .views import *
+from django.urls import path
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import *
 
 urlpatterns = [
-    # ---SYSTEM-OWNER-REGISTRATION-AND-LOGIN-API---
-    path('system-register', SystemOwnerRegisterView.as_view(), name='systemowner-register'),
-    path('system-login', SystemOwnerLoginView.as_view(), name='systemowner-login'),
+    path("register/systemowner", SystemOwnerRegisterView.as_view(), name="systemowner-register"),
+    path("register/organization", OrganizationRegisterView.as_view(), name="organization-register"),
+    path("register/admin", AdminRegisterView.as_view(), name="admin-register"),
+    path("register/user", UserRegisterView.as_view(), name="user-register"),
+    path('login', LoginView.as_view(), name='login'),
 
-    # ---ORGANIZATION-REGISTRATION-AND-LOGIN-API---
-    path('organization-register', OrganizationRegisterView.as_view(), name='organization-register'),
-    path('organization-login', OrganizationLoginView.as_view(), name='organization-login'),
-
-    # ---ADMIN-REGISTRATION-AND-LOGIN-API---
-    path('admin-register', AdminRegisterView.as_view(), name='organization-register'),
-    path('admin-login', AdminLoginView.as_view(), name='organization-register'),
-
-    # ---SUPERVISOR-REGISTER-AND-LOGIN---
-    path('supervisor-register', SupervisorRegisterView.as_view(), name='supervisor-register'),
-    path('supervisor-login', SupervisorLoginView.as_view(), name='supervisor-login'),
-
-    # ---EMPLOYEE-REGISTER-AND-LOGIN---
-    path('employee-register', EmployeeRegisterView.as_view(), name='employee-register'),
-    path('employee-login', EmployeeLoginView.as_view(), name='employee-login'),
+    
+    # JWT Token endpoints
+    path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
