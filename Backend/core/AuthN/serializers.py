@@ -4,6 +4,7 @@ from .models import CustomUser, SystemOwnerProfile, OrganizationProfile, AdminPr
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(required=False)
     class Meta:
         model = CustomUser
         fields = ['id', 'email', 'username', 'password', 'role']

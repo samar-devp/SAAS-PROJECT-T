@@ -1,11 +1,11 @@
 import uuid
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
 from django.utils.timezone import now
-from django.contrib.auth import get_user_model
 
-
-# Custom User Manager
+# ---------------------------
+# ✅ Custom User Manager
+# ---------------------------
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -19,21 +19,36 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
         return self.create_user(email, password, **extra_fields)
 
 
-# Custom User Model with UUID as Primary Key
+# ---------------------------
+# ✅ Custom User Model
+# ---------------------------
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # ✅ UUID as primary key
+    ROLE_CHOICES = (
+        ("system_owner", "System Owner"),
+        ("organization", "Organization"),
+        ("admin", "Admin"),
+        ("user", "User"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, unique=True)
-    role = models.CharField(
-        max_length=50,
-        choices=[("system_owner", "System Owner"), ("organization", "Organization"), ("admin", "Admin"), ("user", "User")]
-    )
+    role = models.CharField(max_length=50, choices=ROLE_CHOICES)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(default=now)  # ✅ Add this field
+    date_joined = models.DateTimeField(default=now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     groups = models.ManyToManyField(Group, related_name="customuser_groups", blank=True)
     user_permissions = models.ManyToManyField(Permission, related_name="customuser_permissions", blank=True)
@@ -47,54 +62,107 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
-# Get the CustomUser model
-CustomUser = get_user_model()
-
-
-# ✅ System Owner Profile (Top-Level)
 class SystemOwnerProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # ✅ UUID as primary key
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'system_owner'})
     company_name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return self.company_name
 
-
-# ✅ Organization Profile (Belongs to System Owner as a CustomUser FK)
 class OrganizationProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # ✅ UUID as primary key
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'})
     organization_name = models.CharField(max_length=255)
-    system_owner = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name="organizations", limit_choices_to={'role': 'system_owner'}
-    )  # ✅ Directly linking to CustomUser with system_owner role
-
-    def __str__(self):
-        return self.organization_name
+    system_owner = models.ForeignKey(SystemOwnerProfile, on_delete=models.CASCADE, related_name="organizations")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
-# ✅ Admin Profile (Belongs to an Organization as a CustomUser FK)
+class OrganizationSettings(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.OneToOneField(OrganizationProfile, on_delete=models.CASCADE, unique=True)
+    organization_logo = models.CharField(max_length=500, blank=True)
+    face_recognition_enabled = models.BooleanField(default=False)
+    auto_checkout_enabled = models.BooleanField(default=False)
+    auto_checkout_time = models.TimeField(null=True, blank=True)
+    auto_shiftwise_checkout_enabled = models.BooleanField(default=False)
+    auto_shiftwise_checkout_time = models.TimeField(null=True, blank=True)
+    late_punch_enabled = models.BooleanField(default=False)
+    late_punch_grace_minutes = models.IntegerField(null=True, blank=True)
+    early_exit_enabled = models.BooleanField(default=False)
+    early_exit_grace_minutes = models.IntegerField(null=True, blank=True)
+    auto_shift_assignment_enabled = models.BooleanField(default=False)
+    compensatory_off_enabled = models.BooleanField(default=False)
+    custom_week_off_enabled = models.BooleanField(default=False)
+    location_tracking_enabled = models.BooleanField(default=False)
+    manual_attendance_enabled = models.BooleanField(default=False)
+    expense_module_enabled = models.BooleanField(default=False)
+    chat_module_enabled = models.BooleanField(default=False)
+    group_location_tracking_enabled = models.BooleanField(default=False)
+    meeting_module_enabled = models.BooleanField(default=False)
+    business_intelligence_reports_enabled = models.BooleanField(default=False)
+    payroll_module_enabled = models.BooleanField(default=False)
+    location_marking_enabled = models.BooleanField(default=False)
+    sandwich_leave_enabled = models.BooleanField(default=False)
+    leave_carry_forward_enabled = models.BooleanField(default=False)
+    min_hours_for_half_day = models.IntegerField(null=True, blank=True)
+    multiple_shift_enabled = models.BooleanField(default=False)
+    email_notifications_enabled = models.BooleanField(default=False)
+    sms_notifications_enabled = models.BooleanField(default=False)
+    push_notifications_enabled = models.BooleanField(default=False)
+    ip_restriction_enabled = models.BooleanField(default=False)
+    allowed_ip_ranges = models.TextField(blank=True, null=True)
+    geofencing_enabled = models.BooleanField(default=False)
+    geofence_radius_in_meters = models.IntegerField(null=True, blank=True)
+    device_binding_enabled = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class AdminProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # ✅ UUID as primary key
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'})
     admin_name = models.CharField(max_length=255)
-    organization = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name="admins", limit_choices_to={'role': 'organization'}
-    )  # ✅ Directly linking to CustomUser with organization role
-
-    def __str__(self):
-        return self.admin_name
+    organization = models.ForeignKey(OrganizationProfile, on_delete=models.CASCADE, related_name="admins")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
-# ✅ User Profile (Belongs to an Admin as a CustomUser FK)
 class UserProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # ✅ UUID as primary key
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'user'})
     user_name = models.CharField(max_length=255)
-    admin = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name="users", limit_choices_to={'role': 'admin'}
-    )  # ✅ Directly linking to CustomUser with admin role
+    admin = models.ForeignKey(AdminProfile, on_delete=models.CASCADE, related_name="users")
+    profile_photo_url = models.CharField(max_length=500, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    marital_status = models.CharField(max_length=50, blank=True)
+    gender = models.CharField(max_length=20, blank=True)
+    blood_group = models.CharField(max_length=10, blank=True)
+    date_of_joining = models.DateField(null=True, blank=True)
+    allow_geo_fencing = models.BooleanField(default=False)
+    job_title = models.CharField(max_length=255, blank=True)
+    fcm_token = models.CharField(max_length=255, blank=True)
+    radius = models.IntegerField(null=True, blank=True)
+    week_off_policy_ids = models.JSONField(blank=True, null=True)
+    shift_ids = models.JSONField(blank=True, null=True)
+    location = models.JSONField(blank=True, null=True)
+    custom_employee_id = models.CharField(max_length=255, unique=True, blank=True)
+    aadhaar_number = models.CharField(max_length=20, blank=True)
+    pan_number = models.CharField(max_length=20, blank=True)
+    referral_contact_number = models.CharField(max_length=20, blank=True)
+    bank_account_no = models.CharField(max_length=30, blank=True)
+    bank_ifsc_code = models.CharField(max_length=20, blank=True)
+    bank_name = models.CharField(max_length=100, blank=True)
+    pf_number = models.CharField(max_length=30, blank=True)
+    esic_number = models.CharField(max_length=30, blank=True)
+    bank_address = models.TextField(blank=True)
+    emergency_contact_no = models.CharField(max_length=20, blank=True)
+    designation = models.CharField(max_length=100, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.user_name
