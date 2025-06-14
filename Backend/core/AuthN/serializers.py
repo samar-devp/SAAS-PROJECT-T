@@ -1,18 +1,21 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import CustomUser, SystemOwnerProfile, OrganizationProfile, AdminProfile, UserProfile
-
+from .models import *
+from ServiceShift.models import *
+from ServiceWeekOff.models import *
+from TaskControl.models import *
+from Expenditure.models import * 
 
 class CustomUserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(required=False)
     class Meta:
-        model = CustomUser
+        model = BaseUserModel
         fields = ['id', 'email', 'username', 'password', 'role']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         validated_data['password'] = make_password(validated_data['password'])  # Hash password
-        return CustomUser.objects.create(**validated_data)
+        return BaseUserModel.objects.create(**validated_data)
 
 
 # System Owner Profile Serializer
@@ -26,14 +29,14 @@ class SystemOwnerProfileSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         user_data['role'] = 'system_owner'
-        user = CustomUser.objects.create_user(**user_data)
+        user = BaseUserModel.objects.create_user(**user_data)
         return SystemOwnerProfile.objects.create(user=user, **validated_data)
 
 
 # Organization Profile Serializer (FK to System Owner)
 class OrganizationProfileSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer()
-    system_owner = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+    system_owner = serializers.PrimaryKeyRelatedField(queryset=BaseUserModel.objects.all())
 
     class Meta:
         model = OrganizationProfile
@@ -42,14 +45,21 @@ class OrganizationProfileSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         user_data['role'] = 'organization'
-        user = CustomUser.objects.create_user(**user_data)
-        return OrganizationProfile.objects.create(user=user, **validated_data)
+        base_user = BaseUserModel.objects.create_user(**user_data)  # ✅ Create user
+
+        # ✅ Create settings linked to this user
+        OrganizationSettings.objects.create(organization=base_user)
+
+        # ✅ Create and return the OrganizationProfile
+        return OrganizationProfile.objects.create(user=base_user, **validated_data)
+        
+    
 
 
 # Admin Profile Serializer (FK to Organization)
 class AdminProfileSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer()
-    organization = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+    organization = serializers.PrimaryKeyRelatedField(queryset=BaseUserModel.objects.all())
 
     class Meta:
         model = AdminProfile
@@ -58,21 +68,55 @@ class AdminProfileSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         user_data['role'] = 'admin'
-        user = CustomUser.objects.create_user(**user_data)
-        return AdminProfile.objects.create(user=user, **validated_data)
+        user = BaseUserModel.objects.create_user(**user_data)
+        print(f"==>> validated_data: {validated_data}")
+        # Create default ServiceShift
+        admin_profile = AdminProfile.objects.create(user=user, **validated_data)
+        ServiceShift.objects.create(admin=user,organization=admin_profile.organization)
+        WeekOffPolicy.objects.create(admin=user,organization=admin_profile.organization)
+        WeekOffPolicy.objects.create(admin=user,organization=admin_profile.organization)
+        TaskType.objects.create(admin=user,organization=admin_profile.organization)
+        ExpenseCategory.objects.create(admin=user,organization=admin_profile.organization)
+        return admin_profile
 
 
 # User Profile Serializer (FK to Admin)
 class UserProfileSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer()
-    admin = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+    admin = serializers.PrimaryKeyRelatedField(queryset=BaseUserModel.objects.all())
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'user_name', 'admin']
+        fields = ['id', 'user', 'user_name', 'admin', 'organization']
+        read_only_fields = ['id']
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         user_data['role'] = 'user'
-        user = CustomUser.objects.create_user(**user_data)
-        return UserProfile.objects.create(user=user, **validated_data)
+        user = BaseUserModel.objects.create_user(**user_data)
+
+        admin_user = validated_data['admin']
+        admin_profile = AdminProfile.objects.get(user=admin_user)
+        validated_data['organization'] = admin_profile.organization
+
+        # Temporarily remove many-to-many fields from validated_data
+        shift_ids = ServiceShift.objects.filter(admin=admin_user, is_active=True).values_list('id', flat=True)[:1]
+        week_off_ids = WeekOffPolicy.objects.filter(admin=admin_user).values_list('id', flat=True)[:1]
+        location_ids = Location.objects.filter(admin=admin_user, is_active=True).values_list('id', flat=True)[:1]
+
+        # Create the user profile first (without M2M fields)
+        profile = UserProfile.objects.create(user=user, **validated_data)
+
+        # Then assign the M2M fields
+        profile.shifts.set(shift_ids)
+        profile.week_offs.set(week_off_ids)
+        profile.locations.set(location_ids)
+
+        return profile
+
+
+class OrganizationSettingsSerializer(serializers.ModelSerializer):
+    organization = serializers.PrimaryKeyRelatedField(read_only=True)
+    class Meta:
+        model = OrganizationSettings
+        fields = '__all__'

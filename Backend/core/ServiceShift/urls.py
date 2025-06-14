@@ -1,7 +1,7 @@
 from django.urls import path
-from .views import ServiceShiftListCreateAPIView, ServiceShiftDetailAPIView
+from .views import *
 
 urlpatterns = [
-    path('shifts/', ServiceShiftListCreateAPIView.as_view(), name='shift-list-create'),
-    path('shifts/<uuid:pk>/', ServiceShiftDetailAPIView.as_view(), name='shift-detail'),
+    path('service-shifts/<uuid:admin_id>', ServiceShiftAPIView.as_view(), name='service-shift-list-create'),
+    path('service-shifts/<uuid:admin_id>/<int:pk>', ServiceShiftAPIView.as_view(), name='service-shift-detail'),
 ]

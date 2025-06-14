@@ -11,5 +11,9 @@ urlpatterns = [
     path("register/user", UserRegisterView.as_view(), name="user-register"),
     path('login', LoginView.as_view(), name='login'),
 
+    path('organization-settings', OrganizationSettingsAPIView.as_view(), name='org-settings'),
+    path('organization-settings/<uuid:org_id>', OrganizationSettingsAPIView.as_view(), name='org-settings-detail'),
+
+
     
 ]

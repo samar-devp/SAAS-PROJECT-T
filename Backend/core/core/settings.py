@@ -56,7 +56,9 @@ LOCAL_APPS = [
     'Expenditure',
     'UserActivity',
     'ReportLog',
-    'PayrollSystem'
+    'PayrollSystem',
+    'TaskControl',
+    'LocationControl'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -108,7 +110,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = "AuthN.CustomUser"
+AUTH_USER_MODEL = "AuthN.BaseUserModel"
 
 
 SIMPLE_JWT = {

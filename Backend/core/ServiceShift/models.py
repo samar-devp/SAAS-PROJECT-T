@@ -1,24 +1,56 @@
 from django.db import models
-
 import uuid
-from AuthN.models import AdminProfile 
-from django.core.exceptions import ValidationError
+from AuthN.models import *
+from datetime import datetime, timedelta , time
 
 class ServiceShift(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    from_time = models.DateTimeField()
-    to_time = models.DateTimeField()
-    admin = models.ForeignKey(AdminProfile, on_delete=models.CASCADE, related_name='service_shifts')
+    id = models.BigAutoField(primary_key=True)
+    admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, related_name="admin_shift")
+    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, related_name="organization_shift")
+    shift_name = models.CharField(max_length=255, null=True, blank=True, default="Default Shift")
+    start_time = models.TimeField(default=time(9, 0))
+    end_time = models.TimeField(default=time(9, 0))
+    break_duration_minutes = models.IntegerField(null=True, blank=True)
+    duration_minutes = models.IntegerField(null=True, blank=True)
+    is_night_shift = models.BooleanField(default=False, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    shift_name = models.CharField(max_length=100)
-    is_inactive = models.BooleanField(default=False)
-    shift_duration = models.DurationField(blank=True, null=True)
+
 
     def save(self, *args, **kwargs):
-        if self.from_time and self.to_time:
-            self.shift_duration = self.to_time - self.from_time
-        super(ServiceShift, self).save(*args, **kwargs)
+        # Calculate total duration in minutes (accounting for night shift logic)
+        start_dt = datetime.combine(datetime.today(), self.start_time)
+        end_dt = datetime.combine(datetime.today(), self.end_time)
+
+        # Handle night shift where end_time is past midnight
+        if self.end_time <= self.start_time:
+            end_dt += timedelta(days=1)
+            self.is_night_shift = True
+        else:
+            self.is_night_shift = False
+
+        total_minutes = int((end_dt - start_dt).total_seconds() / 60)
+
+        # Subtract break if provided
+        break_minutes = self.break_duration_minutes if self.break_duration_minutes else 0
+        self.duration_minutes = total_minutes - break_minutes
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.shift_name} ({self.from_time} - {self.to_time})"
+        return f"{self.shift_name or 'Shift'} ({self.start_time} - {self.end_time})"
+
+# class UserShiftAssignment(models.Model):
+#     id = models.BigAutoField(primary_key=True)  # Auto-incrementing BigInt ID
+#     user = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
+#     shift = models.ForeignKey(ServiceShift, on_delete=models.CASCADE)
+#     admin = models.ForeignKey(AdminProfile, on_delete=models.CASCADE)
+#     organization = models.ForeignKey(OrganizationProfile, on_delete=models.CASCADE)
+#     attendance_date = models.DateField()
+#     assignment_type = models.CharField(max_length=50, default='Auto')
+#     assigned_by = models.UUIDField(null=True, blank=True)
+#     assignment_time = models.DateTimeField(null=True, blank=True)
+#     remarks = models.TextField(null=True, blank=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)

@@ -1,8 +1,8 @@
 import uuid
 from django.db import models
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
 from django.utils.timezone import now
-
 # ---------------------------
 # ✅ Custom User Manager
 # ---------------------------
@@ -31,7 +31,7 @@ class CustomUserManager(BaseUserManager):
 # ---------------------------
 # ✅ Custom User Model
 # ---------------------------
-class CustomUser(AbstractBaseUser, PermissionsMixin):
+class BaseUserModel(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = (
         ("system_owner", "System Owner"),
         ("organization", "Organization"),
@@ -62,26 +62,26 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
-class SystemOwnerProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'system_owner'})
+class SystemOwnerProfile(models.Model): 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) # (IGNORE NOT IN USED)
+    user = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'system_owner'},related_name='own_system_owner_profile')
     company_name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class OrganizationProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'})
+class OrganizationProfile(models.Model): 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) # (IGNORE NOT IN USED)
+    user = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},  related_name='own_organization_profile')  # 👈 Unique reverse accessor)
     organization_name = models.CharField(max_length=255)
-    system_owner = models.ForeignKey(SystemOwnerProfile, on_delete=models.CASCADE, related_name="organizations")
+    system_owner = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'system_owner'}, related_name='under_syster_owner')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
-class OrganizationSettings(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    organization = models.OneToOneField(OrganizationProfile, on_delete=models.CASCADE, unique=True)
+ 
+class OrganizationSettings(models.Model): 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) # (IGNORE NOT IN USED)
+    organization = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, unique=True,limit_choices_to={'role': 'organization'},  related_name='own_organization_profile_setting')
     organization_logo = models.CharField(max_length=500, blank=True)
     face_recognition_enabled = models.BooleanField(default=False)
     auto_checkout_enabled = models.BooleanField(default=False)
@@ -121,20 +121,24 @@ class OrganizationSettings(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class AdminProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'})
+class AdminProfile(models.Model): 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # (IGNORE NOT IN USED)
+    user = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'},related_name='own_admin_profile')
     admin_name = models.CharField(max_length=255)
-    organization = models.ForeignKey(OrganizationProfile, on_delete=models.CASCADE, related_name="admins")
+    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name='under_organization_profile')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
+from ServiceShift.models import *
+from ServiceWeekOff.models import *
+from LocationControl.models import *
 class UserProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'user'})
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) # (IGNORE NOT IN USED)
+    user = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'user'},related_name='own_user_profile')
     user_name = models.CharField(max_length=255)
-    admin = models.ForeignKey(AdminProfile, on_delete=models.CASCADE, related_name="users")
+    admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'},related_name='under_admin_profile')
+    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name='under_organization_profile_user')
     profile_photo_url = models.CharField(max_length=500, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     marital_status = models.CharField(max_length=50, blank=True)
@@ -145,10 +149,10 @@ class UserProfile(models.Model):
     job_title = models.CharField(max_length=255, blank=True)
     fcm_token = models.CharField(max_length=255, blank=True)
     radius = models.IntegerField(null=True, blank=True)
-    week_off_policy_ids = models.JSONField(blank=True, null=True)
-    shift_ids = models.JSONField(blank=True, null=True)
-    location = models.JSONField(blank=True, null=True)
-    custom_employee_id = models.CharField(max_length=255, unique=True, blank=True)
+    shifts = models.ManyToManyField(ServiceShift, blank=True, related_name='users_shifts')
+    week_offs = models.ManyToManyField(WeekOffPolicy, blank=True, related_name='users_week_off')
+    locations = models.ManyToManyField(Location, blank=True, related_name='users_location')
+    custom_employee_id = models.CharField(max_length=255, blank=True)
     aadhaar_number = models.CharField(max_length=20, blank=True)
     pan_number = models.CharField(max_length=20, blank=True)
     referral_contact_number = models.CharField(max_length=20, blank=True)
