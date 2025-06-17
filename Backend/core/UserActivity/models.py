@@ -4,8 +4,8 @@ from AuthN.models import *
 # Create your models here.
 class Location(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    admin = models.ForeignKey(AdminProfile, on_delete=models.CASCADE)
-    organization = models.ForeignKey(OrganizationProfile, on_delete=models.CASCADE)
+    admin = models.ForeignKey(AdminProfile, limit_choices_to={'role': 'admin'},on_delete=models.CASCADE)
+    organization = models.ForeignKey(OrganizationProfile, limit_choices_to={'role': 'organization'},on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     address = models.TextField()
     district = models.CharField(max_length=100)

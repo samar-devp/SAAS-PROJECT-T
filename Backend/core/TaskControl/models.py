@@ -4,8 +4,8 @@ from AuthN.models import *
 
 class TaskType(models.Model):
     id = models.BigAutoField(primary_key=True)
-    admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, related_name="admin_task_type")
-    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, related_name="organization_task_type")
+    admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'},related_name="admin_task_type")
+    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name="organization_task_type")
     name = models.CharField(max_length=255, null=True, blank=True, default="Service Task")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

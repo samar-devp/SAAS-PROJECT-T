@@ -58,8 +58,9 @@ LOCAL_APPS = [
     'ReportLog',
     'PayrollSystem',
     'TaskControl',
-    'LocationControl'
-]
+    'LocationControl',
+    'LeaveControl'
+    ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -145,11 +146,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+USE_TZ = False  # Use timezone-aware datetime
+TIME_ZONE = 'Asia/Kolkata'  # Set your timezone to Indian Standard Time
 
-USE_I18N = True
-
-USE_TZ = True
 
 import os
 MEDIA_URL = '/media/'
