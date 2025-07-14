@@ -148,7 +148,7 @@ export const SidebarDataTest = [
   //       ],
   //     },
       {
-        label: 'Super Admin',
+        label: 'System Owner',
         link: 'index',
         submenu: true,
         showSubRoute: false,
@@ -156,37 +156,37 @@ export const SidebarDataTest = [
         base: 'super-admin',
         materialicons: '',
         submenuItems: [
-          {
-            label: 'Dashboard',
-            link: routes.superAdminDashboard,
-            base: 'super-admin-dashboard',
-          },
+          // {
+          //   label: 'Dashboard',
+          //   link: routes.superAdminDashboard,
+          //   base: 'super-admin-dashboard',
+          // },
           {
             label: 'Companies',
             link: routes.superAdminCompanies,
             base: 'companies',
           },
-          {
-            label: 'Subscriptions',
-            link: routes.superAdminSubscriptions,
-            base: 'subscriptions',
-          },
-          {
-            label: 'Packages',
-            link: routes.superAdminPackages,
-            base: 'packages',
-            base2: 'packages-grid',
-          },
-          {
-            label: 'Domain',
-            link: routes.superAdminDomain,
-            base: 'domain',
-          },
-          {
-            label: 'Purchase Transaction',
-            link: routes.superAdminPurchaseTransaction,
-            base: 'purchase-transaction',
-          },
+          // {
+          //   label: 'Subscriptions',
+          //   link: routes.superAdminSubscriptions,
+          //   base: 'subscriptions',
+          // },
+          // {
+          //   label: 'Packages',
+          //   link: routes.superAdminPackages,
+          //   base: 'packages',
+          //   base2: 'packages-grid',
+          // },
+          // {
+          //   label: 'Domain',
+          //   link: routes.superAdminDomain,
+          //   base: 'domain',
+          // },
+          // {
+          //   label: 'Purchase Transaction',
+          //   link: routes.superAdminPurchaseTransaction,
+          //   base: 'purchase-transaction',
+          // },
         ],
       },
     ],

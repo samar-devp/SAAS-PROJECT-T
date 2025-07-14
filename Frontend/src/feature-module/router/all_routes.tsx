@@ -59,7 +59,7 @@ export const all_routes = {
   login: "/login",
   login2: "/login-2",
   login3: "/login-3",
-  register: "/register",
+    register: "/register",
   register2: "/register-2",
   register3: "/register-3",
   forgotPassword: "/forgot-password",

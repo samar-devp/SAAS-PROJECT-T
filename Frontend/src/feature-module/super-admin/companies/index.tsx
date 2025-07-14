@@ -1,40 +1,70 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import axios from "axios";
 import { Link } from 'react-router-dom'
 import { all_routes } from '../../router/all_routes'
 import PredefinedDateRanges from '../../../core/common/datePicker'
 import { companies_details } from '../../../core/data/json/companiesdetails'
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
-import Table from "../../../core/common/dataTable/index";
+// import Table from "../../../core/common/dataTable/index";
+import { Table } from "antd";
 import CommonSelect from '../../../core/common/commonSelect'
 import { DatePicker } from 'antd'
 import ReactApexChart from 'react-apexcharts'
 import CollapseHeader from '../../../core/common/collapse-header/collapse-header'
+
 type PasswordField = "password" | "confirmPassword";
 
 const Companies = () => {
-  const data = companies_details;
-  const columns = [
-    {
-      title: "Company Name",
-      dataIndex: "CompanyName",
-      render: (text: String, record: any) => (
-        <div className="d-flex align-items-center file-name-icon">
-          <Link to="#" className="avatar avatar-md border rounded-circle">
-            <ImageWithBasePath
-              src={`assets/img/company/${record.Image}`}
-              className="img-fluid"
-              alt="img"
-            />
-          </Link>
-          <div className="ms-2">
-            <h6 className="fw-medium">
-              <Link to="#">{record.CompanyName}</Link>
-            </h6>
-          </div>
-        </div>
+  // ✅ State to store fetched organization data
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-      ),
-      sorter: (a: any, b: any) => a.CompanyName.length - b.CompanyName.length,
+  // ✅ Fetch data from API on component mount
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const token = localStorage.getItem("access_token"); // ⬅️ Get token
+        console.log(token)
+
+        const response = await axios.get("http://127.0.0.1:8000/api/organizations/", {
+          headers: {
+            Authorization: `Bearer ${token}`, // ⬅️ Pass token in header
+          },
+        });
+
+        setData(response.data); // ⬅️ Set API response data in state
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+        setLoading(false);
+      }
+    };
+    fetchCompanies();
+  }, []); // ⬅️ Run only once when component mounts
+  // const data = companies_details;
+  console.log(data)
+  const columns = [
+     {
+    title: "Company Name",
+    dataIndex: "organization_name", // ✅ directly accessible
+    render: (text: string, record: any) => (
+      <div className="d-flex align-items-center file-name-icon">
+        <Link to="#" className="avatar avatar-md border rounded-circle">
+          <ImageWithBasePath
+            src="assets/img/company/default.png" // 🔁 No image from API, using default
+            className="img-fluid"
+            alt="img"
+          />
+        </Link>
+        <div className="ms-2">
+          <h6 className="fw-medium mb-0">
+            <Link to="#">{record.organization_name}</Link>
+          </h6>
+        </div>
+      </div>
+    ),
+
+      sorter: (a: any, b: any) => a.organization_name.length - b.organization_name.length,
     },
     {
       title: "Email",
@@ -786,7 +816,7 @@ const Companies = () => {
               </div>
             </div>
             <div className="card-body p-0">
-              <Table dataSource={data} columns={columns} Selection={true} />
+              <Table dataSource={data} columns={columns} rowSelection={{ type: "checkbox" }} />
             </div>
           </div>
         </div>

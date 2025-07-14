@@ -22,8 +22,8 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   <React.StrictMode>
-    <Provider store={store}>
-      <BrowserRouter basename={base_path}>
+    <Provider store={store}> {/* Redux Value Store */}
+      <BrowserRouter basename={base_path}> {/*  without load page redirect */}
         <ALLRoutes />
       </BrowserRouter>
     </Provider>

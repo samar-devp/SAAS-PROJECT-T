@@ -1,3 +1,7 @@
+import { BACKEND_PATH } from "../../../environment";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
 import React, { useEffect, useState } from "react";
 import ImageWithBasePath from "../../../core/common/imageWithBasePath";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,8 +15,12 @@ const Login = () => {
   const navigationPath = () => {
     navigation(routes.adminDashboard);
   };
+  // Email, password, error aur password visibility ke state
+  const [username, setUsername] = useState(""); // Email input ka value
+  const [password, setPassword] = useState(""); // Password input ka value
+  const [error, setError] = useState<string | null>(null); // Error message agar login fail ho
   const [passwordVisibility, setPasswordVisibility] = useState({
-    password: false,
+    password: false, // Initially password hidden hoga
   });
 
   const togglePasswordVisibility = (field: PasswordField) => {
@@ -21,8 +29,38 @@ const Login = () => {
       [field]: !prevState[field],
     }));
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    console.log("________________API CALLED")
+    e.preventDefault();
+    setError(null);
+    try {
+      const response = await axios.post(`${BACKEND_PATH}login`, {
+        username,
+        password,
+      });
+      const { access, refresh } = response.data;
+        // ✅ Destructure response
+      const { access_token, refresh_token, user_id, role } = response.data;
+
+      // ✅ Store tokens and user data
+      localStorage.setItem("access_token", access_token);
+      localStorage.setItem("refresh_token", refresh_token);
+      localStorage.setItem("user_id", user_id);
+      localStorage.setItem("role", role);
+
+      // Navigate to admin dashboard
+      navigation(routes.adminDashboard);
+    } catch (err: any) {
+      console.log("_____________error")
+      toast.error(err.response?.data?.error || "Login failed");
+    }
+  };
+
   return (
+    
     <div className="container-fuild">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
       <div className="w-100 overflow-hidden position-relative flex-wrap d-block vh-100">
         <div className="row">
           <div className="col-lg-5">
@@ -68,11 +106,13 @@ const Login = () => {
                         <p className="mb-0">Please enter your details to sign in</p>
                       </div>
                       <div className="mb-3">
-                        <label className="form-label">Email Address</label>
+                        <label className="form-label">Username</label>
                         <div className="input-group">
                           <input
                             type="text"
                             defaultValue=""
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             className="form-control border-end-0"
                           />
                           <span className="input-group-text border-start-0">
@@ -83,13 +123,12 @@ const Login = () => {
                       <div className="mb-3">
                         <label className="form-label">Password</label>
                         <div className="pass-group">
-                        <input
-                            type={
-                              passwordVisibility.password
-                                ? "text"
-                                : "password"
-                            }
+                          <input
+                            type={passwordVisibility.password ? "text" : "password"}
                             className="pass-input form-control"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
                           />
                           <span
                             className={`ti toggle-passwords ${passwordVisibility.password
@@ -102,92 +141,14 @@ const Login = () => {
                           ></span>
                         </div>
                       </div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center">
-                          <div className="form-check form-check-md mb-0">
-                            <input
-                              className="form-check-input"
-                              id="remember_me"
-                              type="checkbox"
-                            />
-                            <label
-                              htmlFor="remember_me"
-                              className="form-check-label mt-0"
-                            >
-                              Remember Me
-                            </label>
-                          </div>
-                        </div>
-                        <div className="text-end">
-                          <Link to={all_routes.forgotPassword} className="link-danger">
-                            Forgot Password?
-                          </Link>
-                        </div>
-                      </div>
                       <div className="mb-3">
-                      <button
-                          onClick={navigationPath}
-                          type="submit"
-                          className="btn btn-primary w-100"
-                        >
+                        <button type="submit" className="btn btn-primary w-100" onClick={handleSubmit}>
                           Sign In
                         </button>
                       </div>
-                      <div className="text-center">
-                        <h6 className="fw-normal text-dark mb-0">
-                          Don’t have an account?
-                          <Link to={all_routes.register} className="hover-a">
-                            {" "}
-                            Create Account
-                          </Link>
-                        </h6>
-                      </div>
-                      <div className="login-or">
-                        <span className="span-or">Or</span>
-                      </div>
-                      <div className="mt-2">
-                        <div className="d-flex align-items-center justify-content-center flex-wrap">
-                          <div className="text-center me-2 flex-fill">
-                            <Link
-                              to="#"
-                              className="br-10 p-2 btn btn-info d-flex align-items-center justify-content-center"
-                            >
-                              <ImageWithBasePath
-                                className="img-fluid m-1"
-                                src="assets/img/icons/facebook-logo.svg"
-                                alt="Facebook"
-                              />
-                            </Link>
-                          </div>
-                          <div className="text-center me-2 flex-fill">
-                            <Link
-                              to="#"
-                              className="br-10 p-2 btn btn-outline-light border d-flex align-items-center justify-content-center"
-                            >
-                              <ImageWithBasePath
-                                className="img-fluid m-1"
-                                src="assets/img/icons/google-logo.svg"
-                                alt="Facebook"
-                              />
-                            </Link>
-                          </div>
-                          <div className="text-center flex-fill">
-                            <Link
-                              to="#"
-                              className="bg-dark br-10 p-2 btn btn-dark d-flex align-items-center justify-content-center"
-                            >
-                              <ImageWithBasePath
-                                className="img-fluid m-1"
-                                src="assets/img/icons/apple-logo.svg"
-                                alt="Apple"
-                              />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                     <div className="mt-5 pb-4 text-center">
-                      <p className="mb-0 text-gray-9">Copyright © 2024 - Smarthr</p>
+                      <p className="mb-0 text-gray-9">Copyright © 2025 - NextPiQ</p>
                     </div>
                   </div>
                 </form>
