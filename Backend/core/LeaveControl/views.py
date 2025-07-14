@@ -52,7 +52,6 @@ class LeaveTypeAPIView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-
 class EmployeeLeaveBalanceAPIView(APIView):
     def get(self, request, user_id, pk=None):
         if pk:
@@ -64,22 +63,25 @@ class EmployeeLeaveBalanceAPIView(APIView):
         return Response(serializer.data)
 
     def post(self, request, user_id, pk=None):
-        print(f"==>> user_id: {user_id}")
-        # user = get_object_or_404(BaseUserModel, id=user_id, role='user')
         user = get_object_or_404(UserProfile, user_id=user_id)
-        print(f"==>> user: {user.user_id}")
-        print(f"==>> user: {user.admin_id}")
         data = request.data.copy()
         data['user'] = user.user_id
         data['admin'] = user.admin_id
 
-        serializer = EmployeeLeaveBalanceSerializer(data=data)
-        assigned = LeaveType.objects.get(id=data['leave_type']).default_count
-        if int(data.get('used', 0)) > assigned:
+        # Get assigned default leaves for validation
+        leave_type = get_object_or_404(LeaveType, id=data['leave_type'])
+        assigned = leave_type.default_count + int(data.get('carried_forward', 0))
+
+        # Validate used + pending ≤ assigned
+        used = int(data.get('used', 0))
+        pending = int(data.get('pending', 0))
+        if (used + pending) > assigned:
             return Response(
-                {"error": f"You cannot apply more than {assigned} leaves for this leave type."},
+                {"error": f"Used + pending leaves ({used + pending}) exceed allowed ({assigned})"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        serializer = EmployeeLeaveBalanceSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -89,10 +91,14 @@ class EmployeeLeaveBalanceAPIView(APIView):
         leave_balance = get_object_or_404(EmployeeLeaveBalance, user__id=user_id, id=pk)
         serializer = EmployeeLeaveBalanceUpdateSerializer(leave_balance, data=request.data)
         if serializer.is_valid():
-            assigned = LeaveType.objects.get(id=request.data['leave_type']).default_count
-            if int(request.data.get('used', 0)) > assigned:
+            leave_type = get_object_or_404(LeaveType, id=request.data['leave_type'])
+            assigned = leave_type.default_count + int(request.data.get('carried_forward', 0))
+
+            used = int(request.data.get('used', 0))
+            pending = int(request.data.get('pending', 0))
+            if (used + pending) > assigned:
                 return Response(
-                    {"error": f"You cannot apply more than {assigned} leaves for this leave type."},
+                    {"error": f"Used + pending leaves ({used + pending}) exceed allowed ({assigned})"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             serializer.save()

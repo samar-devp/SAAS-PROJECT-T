@@ -116,6 +116,9 @@ class OrganizationSettings(models.Model):
     geofencing_enabled = models.BooleanField(default=False)
     geofence_radius_in_meters = models.IntegerField(null=True, blank=True)
     device_binding_enabled = models.BooleanField(default=False)
+    plan_name = models.CharField(max_length=100, blank=True, null=True)
+    plan_assigned_date = models.DateField(null=True, blank=True)
+    plan_expiry_date = models.DateField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

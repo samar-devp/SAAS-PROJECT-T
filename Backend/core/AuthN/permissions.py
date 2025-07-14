@@ -3,6 +3,7 @@ from rest_framework import permissions
 class IsSystemOwner(permissions.BasePermission):
     """Allows access only to SystemOwner."""
     def has_permission(self, request, view):
+        print(f"==>> request.user: {request.user}")
         return request.user.is_authenticated and request.user.role == "system_owner"
 
 class IsSystemOwnerOrOrganization(permissions.BasePermission):

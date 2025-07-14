@@ -107,11 +107,11 @@ class LoginView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        email = request.data.get("email")
+        username = request.data.get("username")
         password = request.data.get("password")
 
         try:
-            user = BaseUserModel.objects.get(email=email)
+            user = BaseUserModel.objects.get(username=username)
             if user.check_password(password):
                 return Response(generate_tokens(user), status=status.HTTP_200_OK)
             return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
@@ -138,3 +138,22 @@ class OrganizationSettingsAPIView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrganizationsUnderSystemOwnerAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsSystemOwner]
+
+    def get(self, request):
+        user = request.user
+        print(f"==>> user: {user}")
+
+        # # ✅ Check if the user is a system owner
+        # if user.role != 'system_owner':
+        #     return Response({"detail": "You are not authorized to access this data."}, status=status.HTTP_403_FORBIDDEN)
+
+        # ✅ Get all organizations under this system owner
+        organizations = OrganizationProfile.objects.filter(system_owner=user)
+
+        # ✅ Serialize and return
+        serializer = AllOrganizationProfileSerializer(organizations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

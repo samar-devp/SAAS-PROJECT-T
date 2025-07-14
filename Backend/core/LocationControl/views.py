@@ -30,6 +30,7 @@ class LocationAPIView(APIView):
 
     def put(self, request, admin_id, pk):
         obj = get_object_or_404(Location, admin__id=admin_id, id=pk)
+        print(f"==>> type(get_object_or_404): {type(get_object_or_404)}")
         serializer = LocationSerializer(obj, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()

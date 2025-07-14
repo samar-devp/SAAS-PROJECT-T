@@ -29,23 +29,24 @@ class EmployeeLeaveBalance(models.Model):
     leave_type = models.ForeignKey(LeaveType, on_delete=models.CASCADE, related_name='employee_balances')
     year = models.PositiveIntegerField()
     used = models.PositiveIntegerField(default=0)
+    pending = models.PositiveIntegerField(default=0)
+    carried_forward = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'leave_type', 'year' , 'is_active')
+        unique_together = ('user', 'leave_type', 'year', 'is_active')
 
     @property
     def assigned(self):
-        return self.leave_type.default_count
+        return self.leave_type.default_count + self.carried_forward
 
     @property
     def balance(self):
         return self.assigned - self.used
 
     def __str__(self):
-        return f"{self.employee.username} - {self.leave_type.code} ({self.balance} days)"
-
+        return f"{self.user.username} - {self.leave_type.code} ({self.balance} days)"
 
 class LeaveApplication(models.Model):
     STATUS_CHOICES = (

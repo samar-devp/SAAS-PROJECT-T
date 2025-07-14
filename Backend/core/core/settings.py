@@ -26,9 +26,9 @@ SECRET_KEY = 'django-insecure-%*_y9f1acqxiy(gxfgk2*a##=^0a9tm^g=*)ex#v+n=m#&_&_6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
-
+CORS_ALLOWED_ORIGINS = ['http://localhost:3000']
 # Application definition
 
 DJANGO_APPS = [
@@ -43,6 +43,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',  # Example of a third-party app
     'rest_framework_simplejwt',
+    'corsheaders',
     # "rest_framework.authtoken",
 ]
 
@@ -70,6 +71,7 @@ REST_FRAMEWORK = {
     ),
 }
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -80,6 +82,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core.urls'
+CORS_ALLOW_ALL_ORIGINS = True  # OR use CORS_ALLOWED_ORIGINS = ['http://localhost:3000']
 
 TEMPLATES = [
     {

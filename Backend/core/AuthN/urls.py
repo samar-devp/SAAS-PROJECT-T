@@ -14,6 +14,8 @@ urlpatterns = [
     path('organization-settings', OrganizationSettingsAPIView.as_view(), name='org-settings'),
     path('organization-settings/<uuid:org_id>', OrganizationSettingsAPIView.as_view(), name='org-settings-detail'),
 
+    path("organizations/", OrganizationsUnderSystemOwnerAPIView.as_view(), name="organizations-under-owner"),
+
 
     
 ]

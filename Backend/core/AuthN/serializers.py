@@ -120,3 +120,15 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrganizationSettings
         fields = '__all__'
+
+class AllOrganizationProfileSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer()
+    system_owner = serializers.PrimaryKeyRelatedField(queryset=BaseUserModel.objects.all())
+    is_user_active = serializers.SerializerMethodField()  # 👈 custom field
+
+    class Meta:
+        model = OrganizationProfile
+        fields = ['id', 'user', 'organization_name', 'system_owner', 'created_at', 'is_user_active']
+
+    def get_is_user_active(self, obj):
+        return obj.user.is_active
