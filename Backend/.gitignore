@@ -1,1 +1,10 @@
 env
+# Ignore all __pycache__ folders
+__pycache__/
+
+# Ignore all .pyc files
+*.pyc
+
+# Optional: ignore all migration files (if needed)
+**/migrations/*.py
+!**/migrations/__init__.py  # Uncomment if you want to keep __init__.py
