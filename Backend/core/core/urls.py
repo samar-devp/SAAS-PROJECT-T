@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/', include("Expenditure.urls")),
     path('api/', include("TaskControl.urls")),
     path('api/', include("LocationControl.urls")),
-    path('api/', include("WorkforceProfile.urls")),
+    path('api/', include("WorkLog.urls")),
+    # path('api/', include("WorkforceProfile.urls")),
     path('api/', include("LeaveControl.urls")),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

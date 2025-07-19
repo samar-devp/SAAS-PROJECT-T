@@ -45,8 +45,8 @@ class ServiceShift(models.Model):
 #     id = models.BigAutoField(primary_key=True)  # Auto-incrementing BigInt ID
 #     user = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
 #     shift = models.ForeignKey(ServiceShift, on_delete=models.CASCADE)
-#     admin = models.ForeignKey(AdminProfile, on_delete=models.CASCADE)
-#     organization = models.ForeignKey(OrganizationProfile, on_delete=models.CASCADE)
+#     admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
+#     organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
 #     attendance_date = models.DateField()
 #     assignment_type = models.CharField(max_length=50, default='Auto')
 #     assigned_by = models.UUIDField(null=True, blank=True)

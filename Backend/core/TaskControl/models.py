@@ -15,9 +15,9 @@ class TaskType(models.Model):
 
 # class UserTask(models.Model):
 #     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#     admin = models.ForeignKey(AdminProfile, on_delete=models.CASCADE)
-#     organization = models.ForeignKey(OrganizationProfile, on_delete=models.CASCADE)
-#     assigned_to_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+#     admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
+#     organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
+#     assigned_to_user = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
 #     task_type = models.ForeignKey(TaskType, on_delete=models.CASCADE)
 #     title = models.CharField(max_length=255)
 #     description = models.TextField(blank=True, null=True)

@@ -3,9 +3,9 @@ from AuthN.models import *
 # Create your models here.
 class VisitAssignment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    admin = models.ForeignKey(AdminProfile, on_delete=models.CASCADE)
-    organization = models.ForeignKey(OrganizationProfile, on_delete=models.CASCADE)
-    assigned_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
+    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
+    assigned_user = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
     visitor_name = models.CharField(max_length=255)
     company_name = models.CharField(max_length=255)
     visitor_email = models.EmailField()
