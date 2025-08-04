@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from 'react-router-dom'
-import { all_routes } from '../../router/all_routes'
-import PredefinedDateRanges from '../../../core/common/datePicker'
-import { companies_details } from '../../../core/data/json/companiesdetails'
-import ImageWithBasePath from '../../../core/common/imageWithBasePath';
+import { Link } from "react-router-dom";
+import { all_routes } from "../../router/all_routes";
+import PredefinedDateRanges from "../../../core/common/datePicker";
+import { companies_details } from "../../../core/data/json/companiesdetails";
+import ImageWithBasePath from "../../../core/common/imageWithBasePath";
 // import Table from "../../../core/common/dataTable/index";
 import { Table } from "antd";
-import CommonSelect from '../../../core/common/commonSelect'
-import { DatePicker } from 'antd'
-import ReactApexChart from 'react-apexcharts'
-import CollapseHeader from '../../../core/common/collapse-header/collapse-header'
+import CommonSelect from "../../../core/common/commonSelect";
+import { DatePicker } from "antd";
+import ReactApexChart from "react-apexcharts";
+import CollapseHeader from "../../../core/common/collapse-header/collapse-header";
 
 type PasswordField = "password" | "confirmPassword";
 
@@ -19,52 +19,89 @@ const Companies = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Fetch data from API on component mount
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        const token = localStorage.getItem("access_token"); // ⬅️ Get token
-        console.log(token)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
 
-        const response = await axios.get("http://127.0.0.1:8000/api/organizations/", {
+  const handleAddCompany = async () => {
+    try {
+      const token = localStorage.getItem("access_token"); // ⬅️ Get token
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/register/organization",
+        {
+          user: {
+            email: email,
+            username: organizationName,
+            password: password,
+            role: "organization",
+          },
+          organization_name: organizationName,
+        },
+        {
           headers: {
             Authorization: `Bearer ${token}`, // ⬅️ Pass token in header
           },
-        });
+        }
+      );
 
-        setData(response.data); // ⬅️ Set API response data in state
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching organizations:", error);
-        setLoading(false);
-      }
-    };
+      console.log("✅ Company added:", response.data);
+      // alert("Company added successfully!");
+    } catch (error) {
+      console.error("❌ Error adding company:", error);
+      // alert("Failed to add company!");
+    }
+  };
+  // ✅ Fetch data from API on component mount
+  const fetchCompanies = async () => {
+    try {
+      const token = localStorage.getItem("access_token"); // ⬅️ Get token
+      console.log(token);
+
+      const response = await axios.get(
+        "http://127.0.0.1:8000/api/organizations/",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // ⬅️ Pass token in header
+          },
+        }
+      );
+
+      setData(response.data); // ⬅️ Set API response data in state
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching organizations:", error);
+      setLoading(false);
+    }
+  };
+  // 🧠 useEffect will still run it once on mount
+  useEffect(() => {
     fetchCompanies();
-  }, []); // ⬅️ Run only once when component mounts
-  // const data = companies_details;
-  console.log(data)
+  }, []);
+  console.log(data);
   const columns = [
-     {
-    title: "Company Name",
-    dataIndex: "organization_name", // ✅ directly accessible
-    render: (text: string, record: any) => (
-      <div className="d-flex align-items-center file-name-icon">
-        <Link to="#" className="avatar avatar-md border rounded-circle">
-          <ImageWithBasePath
-            src="assets/img/company/default.png" // 🔁 No image from API, using default
-            className="img-fluid"
-            alt="img"
-          />
-        </Link>
-        <div className="ms-2">
-          <h6 className="fw-medium mb-0">
-            <Link to="#">{record.organization_name}</Link>
-          </h6>
+    {
+      title: "Company Name",
+      dataIndex: "organization_name", // ✅ directly accessible
+      render: (text: string, record: any) => (
+        <div className="d-flex align-items-center file-name-icon">
+          <Link to="#" className="avatar avatar-md border rounded-circle">
+            <ImageWithBasePath
+              src="assets/img/company/default.png" // 🔁 No image from API, using default
+              className="img-fluid"
+              alt="img"
+            />
+          </Link>
+          <div className="ms-2">
+            <h6 className="fw-medium mb-0">
+              <Link to="#">{record.organization_name}</Link>
+            </h6>
+          </div>
         </div>
-      </div>
-    ),
+      ),
 
-      sorter: (a: any, b: any) => a.organization_name.length - b.organization_name.length,
+      sorter: (a: any, b: any) =>
+        a.organization_name.length - b.organization_name.length,
     },
     {
       title: "Email",
@@ -91,7 +128,6 @@ const Companies = () => {
             Upgrade
           </Link>
         </div>
-
       ),
       sorter: (a: any, b: any) => a.Plan.length - b.Plan.length,
     },
@@ -104,11 +140,14 @@ const Companies = () => {
       title: "Status",
       dataIndex: "Status",
       render: (text: string, record: any) => (
-        <span className={`badge ${text === 'Active' ? 'badge-success' : 'badge-danger'} d-inline-flex align-items-center badge-xs`}>
+        <span
+          className={`badge ${
+            text === "Active" ? "badge-success" : "badge-danger"
+          } d-inline-flex align-items-center badge-xs`}
+        >
           <i className="ti ti-point-filled me-1" />
           {text}
         </span>
-
       ),
       sorter: (a: any, b: any) => a.Status.length - b.Status.length,
     },
@@ -133,18 +172,13 @@ const Companies = () => {
           >
             <i className="ti ti-edit" />
           </Link>
-          <Link
-            to="#"
-            data-bs-toggle="modal"
-            data-bs-target="#delete_modal"
-          >
+          <Link to="#" data-bs-toggle="modal" data-bs-target="#delete_modal">
             <i className="ti ti-trash" />
           </Link>
         </div>
-
       ),
     },
-  ]
+  ];
   const [passwordVisibility, setPasswordVisibility] = useState({
     password: false,
     confirmPassword: false,
@@ -180,43 +214,45 @@ const Companies = () => {
   ];
 
   const getModalContainer = () => {
-    const modalElement = document.getElementById('modal-datepicker');
+    const modalElement = document.getElementById("modal-datepicker");
     return modalElement ? modalElement : document.body; // Fallback to document.body if modalElement is null
   };
 
   const [totalChart] = React.useState<any>({
-    series: [{
-      name: "Messages",
-      data: [25, 66, 41, 12, 36, 9, 21]
-    }],
+    series: [
+      {
+        name: "Messages",
+        data: [25, 66, 41, 12, 36, 9, 21],
+      },
+    ],
     fill: {
-      type: 'gradient',
+      type: "gradient",
       gradient: {
         opacityFrom: 0, // Start with 0 opacity (transparent)
-        opacityTo: 0    // End with 0 opacity (transparent)
-      }
+        opacityTo: 0, // End with 0 opacity (transparent)
+      },
     },
     chart: {
-      foreColor: '#fff',
+      foreColor: "#fff",
       type: "area",
       width: 50,
       toolbar: {
-        show: !1
+        show: !1,
       },
       zoom: {
-        enabled: !1
+        enabled: !1,
       },
       dropShadow: {
         enabled: 0,
         top: 3,
         left: 14,
         blur: 4,
-        opacity: .12,
-        color: "#fff"
+        opacity: 0.12,
+        color: "#fff",
       },
       sparkline: {
-        enabled: !0
-      }
+        enabled: !0,
+      },
     },
     markers: {
       size: 0,
@@ -224,81 +260,93 @@ const Companies = () => {
       strokeColors: "#fff",
       strokeWidth: 2,
       hover: {
-        size: 7
-      }
+        size: 7,
+      },
     },
     plotOptions: {
       bar: {
         horizontal: !1,
         columnWidth: "35%",
-        endingShape: "rounded"
-      }
+        endingShape: "rounded",
+      },
     },
     dataLabels: {
-      enabled: !1
+      enabled: !1,
     },
     stroke: {
       show: !0,
       width: 2.5,
-      curve: "smooth"
+      curve: "smooth",
     },
     colors: ["#F26522"],
     xaxis: {
-      categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+      categories: [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+      ],
     },
     tooltip: {
       theme: "dark",
       fixed: {
-        enabled: !1
+        enabled: !1,
       },
       x: {
-        show: !1
+        show: !1,
       },
       y: {
         title: {
           formatter: function (e: any) {
-            return ""
-          }
-        }
+            return "";
+          },
+        },
       },
       marker: {
-        show: !1
-      }
-    }
-  })
+        show: !1,
+      },
+    },
+  });
   const [activeChart] = React.useState<any>({
-    series: [{
-      name: "Active Company",
-      data: [25, 40, 35, 20, 36, 9, 21]
-    }],
+    series: [
+      {
+        name: "Active Company",
+        data: [25, 40, 35, 20, 36, 9, 21],
+      },
+    ],
     fill: {
-      type: 'gradient',
+      type: "gradient",
       gradient: {
         opacityFrom: 0, // Start with 0 opacity (transparent)
-        opacityTo: 0    // End with 0 opacity (transparent)
-      }
+        opacityTo: 0, // End with 0 opacity (transparent)
+      },
     },
     chart: {
-      foreColor: '#fff',
+      foreColor: "#fff",
       type: "area",
       width: 50,
       toolbar: {
-        show: !1
+        show: !1,
       },
       zoom: {
-        enabled: !1
+        enabled: !1,
       },
       dropShadow: {
         enabled: 0,
         top: 3,
         left: 14,
         blur: 4,
-        opacity: .12,
-        color: "#fff"
+        opacity: 0.12,
+        color: "#fff",
       },
       sparkline: {
-        enabled: !0
-      }
+        enabled: !0,
+      },
     },
     markers: {
       size: 0,
@@ -306,81 +354,93 @@ const Companies = () => {
       strokeColors: "#fff",
       strokeWidth: 2,
       hover: {
-        size: 7
-      }
+        size: 7,
+      },
     },
     plotOptions: {
       bar: {
         horizontal: !1,
         columnWidth: "35%",
-        endingShape: "rounded"
-      }
+        endingShape: "rounded",
+      },
     },
     dataLabels: {
-      enabled: !1
+      enabled: !1,
     },
     stroke: {
       show: !0,
       width: 2.5,
-      curve: "smooth"
+      curve: "smooth",
     },
     colors: ["#F26522"],
     xaxis: {
-      categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+      categories: [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+      ],
     },
     tooltip: {
       theme: "dark",
       fixed: {
-        enabled: !1
+        enabled: !1,
       },
       x: {
-        show: !1
+        show: !1,
       },
       y: {
         title: {
           formatter: function (e: any) {
-            return ""
-          }
-        }
+            return "";
+          },
+        },
       },
       marker: {
-        show: !1
-      }
-    }
-  })
+        show: !1,
+      },
+    },
+  });
   const [inactiveChart] = React.useState<any>({
-    series: [{
-      name: "Inactive Company",
-      data: [25, 10, 35, 5, 25, 28, 21]
-    }],
+    series: [
+      {
+        name: "Inactive Company",
+        data: [25, 10, 35, 5, 25, 28, 21],
+      },
+    ],
     fill: {
-      type: 'gradient',
+      type: "gradient",
       gradient: {
         opacityFrom: 0, // Start with 0 opacity (transparent)
-        opacityTo: 0    // End with 0 opacity (transparent)
-      }
+        opacityTo: 0, // End with 0 opacity (transparent)
+      },
     },
     chart: {
-      foreColor: '#fff',
+      foreColor: "#fff",
       type: "area",
       width: 50,
       toolbar: {
-        show: !1
+        show: !1,
       },
       zoom: {
-        enabled: !1
+        enabled: !1,
       },
       dropShadow: {
         enabled: 0,
         top: 3,
         left: 14,
         blur: 4,
-        opacity: .12,
-        color: "#fff"
+        opacity: 0.12,
+        color: "#fff",
       },
       sparkline: {
-        enabled: !0
-      }
+        enabled: !0,
+      },
     },
     markers: {
       size: 0,
@@ -388,81 +448,93 @@ const Companies = () => {
       strokeColors: "#fff",
       strokeWidth: 2,
       hover: {
-        size: 7
-      }
+        size: 7,
+      },
     },
     plotOptions: {
       bar: {
         horizontal: !1,
         columnWidth: "35%",
-        endingShape: "rounded"
-      }
+        endingShape: "rounded",
+      },
     },
     dataLabels: {
-      enabled: !1
+      enabled: !1,
     },
     stroke: {
       show: !0,
       width: 2.5,
-      curve: "smooth"
+      curve: "smooth",
     },
     colors: ["#F26522"],
     xaxis: {
-      categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+      categories: [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+      ],
     },
     tooltip: {
       theme: "dark",
       fixed: {
-        enabled: !1
+        enabled: !1,
       },
       x: {
-        show: !1
+        show: !1,
       },
       y: {
         title: {
           formatter: function (e: any) {
-            return ""
-          }
-        }
+            return "";
+          },
+        },
       },
       marker: {
-        show: !1
-      }
-    }
-  })
+        show: !1,
+      },
+    },
+  });
   const [locationChart] = React.useState<any>({
-    series: [{
-      name: "Inactive Company",
-      data: [30, 40, 15, 23, 20, 23, 25]
-    }],
+    series: [
+      {
+        name: "Inactive Company",
+        data: [30, 40, 15, 23, 20, 23, 25],
+      },
+    ],
     fill: {
-      type: 'gradient',
+      type: "gradient",
       gradient: {
         opacityFrom: 0, // Start with 0 opacity (transparent)
-        opacityTo: 0    // End with 0 opacity (transparent)
-      }
+        opacityTo: 0, // End with 0 opacity (transparent)
+      },
     },
     chart: {
-      foreColor: '#fff',
+      foreColor: "#fff",
       type: "area",
       width: 50,
       toolbar: {
-        show: !1
+        show: !1,
       },
       zoom: {
-        enabled: !1
+        enabled: !1,
       },
       dropShadow: {
         enabled: 0,
         top: 3,
         left: 14,
         blur: 4,
-        opacity: .12,
-        color: "#fff"
+        opacity: 0.12,
+        color: "#fff",
       },
       sparkline: {
-        enabled: !0
-      }
+        enabled: !0,
+      },
     },
     markers: {
       size: 0,
@@ -470,48 +542,58 @@ const Companies = () => {
       strokeColors: "#fff",
       strokeWidth: 2,
       hover: {
-        size: 7
-      }
+        size: 7,
+      },
     },
     plotOptions: {
       bar: {
         horizontal: !1,
         columnWidth: "35%",
-        endingShape: "rounded"
-      }
+        endingShape: "rounded",
+      },
     },
     dataLabels: {
-      enabled: !1
+      enabled: !1,
     },
     stroke: {
       show: !0,
       width: 2.5,
-      curve: "smooth"
+      curve: "smooth",
     },
     colors: ["#F26522"],
     xaxis: {
-      categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+      categories: [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+      ],
     },
     tooltip: {
       theme: "dark",
       fixed: {
-        enabled: !1
+        enabled: !1,
       },
       x: {
-        show: !1
+        show: !1,
       },
       y: {
         title: {
           formatter: function (e: any) {
-            return ""
-          }
-        }
+            return "";
+          },
+        },
       },
       marker: {
-        show: !1
-      }
-    }
-  })
+        show: !1,
+      },
+    },
+  });
 
   return (
     <>
@@ -549,19 +631,13 @@ const Companies = () => {
                   </Link>
                   <ul className="dropdown-menu  dropdown-menu-end p-3">
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         <i className="ti ti-file-type-pdf me-1" />
                         Export as PDF
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         <i className="ti ti-file-type-xls me-1" />
                         Export as Excel{" "}
                       </Link>
@@ -581,7 +657,7 @@ const Companies = () => {
                 </Link>
               </div>
               <div className="ms-2 head-icons">
-              <CollapseHeader />
+                <CollapseHeader />
               </div>
             </div>
           </div>
@@ -710,26 +786,17 @@ const Companies = () => {
                   </Link>
                   <ul className="dropdown-menu  dropdown-menu-end p-3">
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Advanced
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Basic
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Enterprise
                       </Link>
                     </li>
@@ -745,18 +812,12 @@ const Companies = () => {
                   </Link>
                   <ul className="dropdown-menu  dropdown-menu-end p-3">
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Active
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Inactive
                       </Link>
                     </li>
@@ -772,42 +833,27 @@ const Companies = () => {
                   </Link>
                   <ul className="dropdown-menu  dropdown-menu-end p-3">
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Recently Added
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Ascending
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Desending
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Last Month
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
+                      <Link to="#" className="dropdown-item rounded-1">
                         Last 7 Days
                       </Link>
                     </li>
@@ -816,7 +862,11 @@ const Companies = () => {
               </div>
             </div>
             <div className="card-body p-0">
-              <Table dataSource={data} columns={columns} rowSelection={{ type: "checkbox" }} />
+              <Table
+                dataSource={data}
+                columns={columns}
+                rowSelection={{ type: "checkbox" }}
+              />
             </div>
           </div>
         </div>
@@ -872,10 +922,7 @@ const Companies = () => {
                               multiple
                             />
                           </div>
-                          <Link
-                            to="#"
-                            className="btn btn-light btn-sm"
-                          >
+                          <Link to="#" className="btn btn-light btn-sm">
                             Cancel
                           </Link>
                         </div>
@@ -887,35 +934,45 @@ const Companies = () => {
                       <label className="form-label">
                         Name <span className="text-danger"> *</span>
                       </label>
-                      <input type="text" className="form-control" />
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={organizationName}
+                        onChange={(e) => setOrganizationName(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="col-md-6">
                     <div className="mb-3">
                       <label className="form-label">Email Address</label>
-                      <input type="email" className="form-control" />
+                      <input
+                        type="email"
+                        className="form-control"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
                     </div>
                   </div>
-                  <div className="col-md-12">
+                  {/* <div className="col-md-12">
                     <div className="mb-3">
                       <label className="form-label">Account URL</label>
                       <input type="text" className="form-control" />
                     </div>
-                  </div>
-                  <div className="col-md-6">
+                  </div> */}
+                  {/* <div className="col-md-6">
                     <div className="mb-3">
                       <label className="form-label">
                         Phone Number <span className="text-danger"> *</span>
                       </label>
                       <input type="text" className="form-control" />
                     </div>
-                  </div>
-                  <div className="col-md-6">
+                  </div> */}
+                  {/* <div className="col-md-6">
                     <div className="mb-3">
                       <label className="form-label">Website</label>
                       <input type="text" className="form-control" />
                     </div>
-                  </div>
+                  </div> */}
                   <div className="col-md-6">
                     <div className="mb-3 ">
                       <label className="form-label">
@@ -924,20 +981,19 @@ const Companies = () => {
                       <div className="pass-group">
                         <input
                           type={
-                            passwordVisibility.password
-                              ? "text"
-                              : "password"
+                            passwordVisibility.password ? "text" : "password"
                           }
                           className="pass-input form-control"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
                         />
                         <span
-                          className={`ti toggle-passwords ${passwordVisibility.password
-                            ? "ti-eye"
-                            : "ti-eye-off"
-                            }`}
-                          onClick={() =>
-                            togglePasswordVisibility("password")
-                          }
+                          className={`ti toggle-passwords ${
+                            passwordVisibility.password
+                              ? "ti-eye"
+                              : "ti-eye-off"
+                          }`}
+                          onClick={() => togglePasswordVisibility("password")}
                         ></span>
                       </div>
                     </div>
@@ -957,10 +1013,11 @@ const Companies = () => {
                           className="pass-input form-control"
                         />
                         <span
-                          className={`ti toggle-passwords ${passwordVisibility.confirmPassword
-                            ? "ti-eye"
-                            : "ti-eye-off"
-                            }`}
+                          className={`ti toggle-passwords ${
+                            passwordVisibility.confirmPassword
+                              ? "ti-eye"
+                              : "ti-eye-off"
+                          }`}
                           onClick={() =>
                             togglePasswordVisibility("confirmPassword")
                           }
@@ -968,70 +1025,70 @@ const Companies = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="col-md-12">
+                  {/* <div className="col-md-12">
                     <div className="mb-3">
                       <label className="form-label">Address</label>
                       <input type="text" className="form-control" />
                     </div>
-                  </div>
-                  <div className="col-md-6">
+                  </div> */}
+                  {/* <div className="col-md-6">
                     <div className="mb-3 ">
                       <label className="form-label">
                         Plan Name <span className="text-danger"> *</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={planName}
                         defaultValue={planName[0]}
                       />
                     </div>
-                  </div>
-                  <div className="col-md-6">
+                  </div> */}
+                  {/* <div className="col-md-6">
                     <div className="mb-3 ">
                       <label className="form-label">
                         Plan Type <span className="text-danger"> *</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={planType}
                         defaultValue={planType[0]}
                       />
                     </div>
-                  </div>
-                  <div className="col-md-4">
+                  </div> */}
+                  {/* <div className="col-md-4">
                     <div className="mb-3 ">
                       <label className="form-label">
                         Currency <span className="text-danger"> *</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={currency}
                         defaultValue={currency[0]}
                       />
                     </div>
-                  </div>
-                  <div className="col-md-4">
+                  </div> */}
+                  {/* <div className="col-md-4">
                     <div className="mb-3 ">
                       <label className="form-label">
                         Language <span className="text-danger"> *</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={language}
                         defaultValue={language[0]}
                       />
                     </div>
-                  </div>
-                  <div className="col-md-4">
+                  </div> */}
+                  {/* <div className="col-md-4">
                     <div className="mb-3 ">
                       <label className="form-label">Status</label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={statusChoose}
                         defaultValue={statusChoose[0]}
                       />
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
               <div className="modal-footer">
@@ -1042,7 +1099,11 @@ const Companies = () => {
                 >
                   Cancel
                 </button>
-                <button type="button" data-bs-dismiss="modal" className="btn btn-primary">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleAddCompany}
+                >
                   Add Company
                 </button>
               </div>
@@ -1092,10 +1153,7 @@ const Companies = () => {
                               multiple
                             />
                           </div>
-                          <Link
-                            to="#"
-                            className="btn btn-light btn-sm"
-                          >
+                          <Link to="#" className="btn btn-light btn-sm">
                             Cancel
                           </Link>
                         </div>
@@ -1164,20 +1222,17 @@ const Companies = () => {
                       <div className="pass-group">
                         <input
                           type={
-                            passwordVisibility.password
-                              ? "text"
-                              : "password"
+                            passwordVisibility.password ? "text" : "password"
                           }
                           className="pass-input form-control"
                         />
                         <span
-                          className={`ti toggle-passwords ${passwordVisibility.password
-                            ? "ti-eye"
-                            : "ti-eye-off"
-                            }`}
-                          onClick={() =>
-                            togglePasswordVisibility("password")
-                          }
+                          className={`ti toggle-passwords ${
+                            passwordVisibility.password
+                              ? "ti-eye"
+                              : "ti-eye-off"
+                          }`}
+                          onClick={() => togglePasswordVisibility("password")}
                         ></span>
                       </div>
                     </div>
@@ -1197,10 +1252,11 @@ const Companies = () => {
                           className="pass-input form-control"
                         />
                         <span
-                          className={`ti toggle-passwords ${passwordVisibility.confirmPassword
-                            ? "ti-eye"
-                            : "ti-eye-off"
-                            }`}
+                          className={`ti toggle-passwords ${
+                            passwordVisibility.confirmPassword
+                              ? "ti-eye"
+                              : "ti-eye-off"
+                          }`}
                           onClick={() =>
                             togglePasswordVisibility("confirmPassword")
                           }
@@ -1220,7 +1276,7 @@ const Companies = () => {
                         Plan Name <span className="text-danger"> *</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={planName}
                         defaultValue={planName[1]}
                       />
@@ -1232,7 +1288,7 @@ const Companies = () => {
                         Plan Type <span className="text-danger"> *</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={planType}
                         defaultValue={planType[1]}
                       />
@@ -1244,7 +1300,7 @@ const Companies = () => {
                         Currency <span className="text-danger"> *</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={currency}
                         defaultValue={currency[1]}
                       />
@@ -1256,7 +1312,7 @@ const Companies = () => {
                         Language <span className="text-danger"> *</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={language}
                         defaultValue={language[1]}
                       />
@@ -1266,7 +1322,7 @@ const Companies = () => {
                     <div className="mb-3 ">
                       <label className="form-label">Status</label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={statusChoose}
                         defaultValue={statusChoose[1]}
                       />
@@ -1282,7 +1338,11 @@ const Companies = () => {
                 >
                   Cancel
                 </button>
-                <button type="button" data-bs-dismiss="modal" className="btn btn-primary">
+                <button
+                  type="button"
+                  data-bs-dismiss="modal"
+                  className="btn btn-primary"
+                >
                   Save Changes
                 </button>
               </div>
@@ -1361,7 +1421,7 @@ const Companies = () => {
                         Plan Name <span className="text-danger">*</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={planName}
                         defaultValue={planName[0]}
                       />
@@ -1373,7 +1433,7 @@ const Companies = () => {
                         Plan Type <span className="text-danger">*</span>
                       </label>
                       <CommonSelect
-                        className='select'
+                        className="select"
                         options={planType}
                         defaultValue={planType[0]}
                       />
@@ -1460,7 +1520,11 @@ const Companies = () => {
                 >
                   Cancel
                 </button>
-                <button type="button" data-bs-dismiss="modal" className="btn btn-primary">
+                <button
+                  type="button"
+                  data-bs-dismiss="modal"
+                  className="btn btn-primary"
+                >
                   Save Changes
                 </button>
               </div>
@@ -1538,7 +1602,9 @@ const Companies = () => {
                     <div className="col-md-4">
                       <div className="mb-3">
                         <p className="fs-12 mb-0">Currency</p>
-                        <p className="text-gray-9">United Stated Dollar (USD)</p>
+                        <p className="text-gray-9">
+                          United Stated Dollar (USD)
+                        </p>
                       </div>
                     </div>
                     <div className="col-md-4">
@@ -1601,9 +1667,7 @@ const Companies = () => {
       </div>
       {/* /Company Detail */}
     </>
+  );
+};
 
-
-  )
-}
-
-export default Companies
+export default Companies;

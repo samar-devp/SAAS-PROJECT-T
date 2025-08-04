@@ -1,48 +1,122 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { all_routes } from "../../feature-module/router/all_routes";
+// src/core/modals/DeleteModal.tsx
+import React from "react";
+import axios from "axios";
 
-const DeleteModal = () => {
- 
+interface DeleteModalProps {
+  admin_id: string | null;
+  holidayId: number | null;
+  onDeleted?: () => void;
+}
+
+const DeleteModal: React.FC<DeleteModalProps> = ({
+  admin_id,
+  holidayId,
+  onDeleted,
+}) => {
+  const handleDelete = async () => {
+    if (holidayId == null) return;
+    try {
+      await axios.delete(
+        `http://localhost:8000/api/holidays/${admin_id}/${holidayId}`
+      );
+      console.log("✅ Holiday deleted successfully");
+      if (onDeleted) onDeleted();
+    } catch (error) {
+      console.error("❌ Error deleting holiday:", error);
+      alert("Failed to delete the holiday");
+    }
+  };
+
   return (
-    <>
-      <>
-        {/* Delete Modal */}
-        <div className="modal fade" id="delete_modal">
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-body text-center">
-                <span className="avatar avatar-xl bg-transparent-danger text-danger mb-3">
-                  <i className="ti ti-trash-x fs-36" />
-                </span>
-                <h4 className="mb-1">Confirm Delete</h4>
-                <p className="mb-3">
-                  You want to delete all the marked items, this cant be undone once
-                  you delete.
-                </p>
-                <div className="d-flex justify-content-center">
-                 <Link
-                    to="#"
-                    className="btn btn-light me-3"
-                    data-bs-dismiss="modal"
-                  >
-                    Cancel
-                  </Link>
-                 <Link to="#" data-bs-dismiss="modal" className="btn btn-danger">
-                    Yes, Delete
-                  </Link>
-                </div>
-              </div>
+    <div
+      className="modal fade"
+      id="delete_modal"
+      tabIndex={-1}
+      aria-hidden="true"
+    >
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-content">
+          <div className="modal-body text-center">
+            <span className="avatar avatar-xl bg-transparent-danger text-danger mb-3">
+              <i className="ti ti-trash-x fs-36" />
+            </span>
+            <h4 className="mb-1">Confirm Delete</h4>
+            <p className="mb-3">
+              Are you sure you want to delete this holiday? This action cannot
+              be undone.
+            </p>
+            <div className="d-flex justify-content-center">
+              <button
+                type="button"
+                className="btn btn-light me-3"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                data-bs-dismiss="modal"
+                onClick={handleDelete}
+                disabled={holidayId === null}
+              >
+                Yes, Delete
+              </button>
             </div>
           </div>
         </div>
-        {/* /Delete Modal */}
-      </>
-
-    </>
-
+      </div>
+    </div>
   );
 };
 
 export default DeleteModal;
 
+// import React, { useState } from "react";
+// import { Link } from "react-router-dom";
+// import { all_routes } from "../../feature-module/router/all_routes";
+
+// const DeleteModal = () => {
+//   return (
+//     <>
+//       <>
+//         {/* Delete Modal */}
+//         <div className="modal fade" id="delete_modal">
+//           <div className="modal-dialog modal-dialog-centered">
+//             <div className="modal-content">
+//               <div className="modal-body text-center">
+//                 <span className="avatar avatar-xl bg-transparent-danger text-danger mb-3">
+//                   <i className="ti ti-trash-x fs-36" />
+//                 </span>
+//                 <h4 className="mb-1">Confirm Delete</h4>
+//                 <p className="mb-3">
+//                   You want to delete all the marked items, this cant be undone
+//                   once you delete.
+//                 </p>
+//                 <div className="d-flex justify-content-center">
+//                   <Link
+//                     to="#"
+//                     className="btn btn-light me-3"
+//                     data-bs-dismiss="modal"
+//                   >
+//                     Cancel
+//                   </Link>
+//                   <Link
+//                     to="#"
+//                     data-bs-dismiss="modal"
+//                     className="btn btn-danger"
+//                   >
+//                     Yes, Delete
+//                   </Link>
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//         {/* /Delete Modal */}
+//       </>
+//     </>
+//   );
+// };
+
+// export default DeleteModal;

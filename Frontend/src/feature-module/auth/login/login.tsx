@@ -31,7 +31,7 @@ const Login = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("________________API CALLED")
+    console.log("________________API CALLED");
     e.preventDefault();
     setError(null);
     try {
@@ -40,7 +40,7 @@ const Login = () => {
         password,
       });
       const { access, refresh } = response.data;
-        // ✅ Destructure response
+      // ✅ Destructure response
       const { access_token, refresh_token, user_id, role } = response.data;
 
       // ✅ Store tokens and user data
@@ -50,33 +50,57 @@ const Login = () => {
       localStorage.setItem("role", role);
 
       // Navigate to admin dashboard
-      navigation(routes.adminDashboard);
+
+      if (role !== "admin") {
+        toast.error("Login failed");
+      } else {
+        navigation(routes.adminDashboard);
+      }
     } catch (err: any) {
-      console.log("_____________error")
+      console.log("_____________error");
       toast.error(err.response?.data?.error || "Login failed");
     }
   };
 
   return (
-    
     <div className="container-fuild">
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+      />
       <div className="w-100 overflow-hidden position-relative flex-wrap d-block vh-100">
         <div className="row">
           <div className="col-lg-5">
             <div className="login-background position-relative d-lg-flex align-items-center justify-content-center d-none flex-wrap vh-100">
               <div className="bg-overlay-img">
-                <ImageWithBasePath src="assets/img/bg/bg-01.png" className="bg-1" alt="Img" />
-                <ImageWithBasePath src="assets/img/bg/bg-02.png" className="bg-2" alt="Img" />
-                <ImageWithBasePath src="assets/img/bg/bg-03.png" className="bg-3" alt="Img" />
+                <ImageWithBasePath
+                  src="assets/img/bg/bg-01.png"
+                  className="bg-1"
+                  alt="Img"
+                />
+                <ImageWithBasePath
+                  src="assets/img/bg/bg-02.png"
+                  className="bg-2"
+                  alt="Img"
+                />
+                <ImageWithBasePath
+                  src="assets/img/bg/bg-03.png"
+                  className="bg-3"
+                  alt="Img"
+                />
               </div>
               <div className="authentication-card w-100">
                 <div className="authen-overlay-item border w-100">
                   <h1 className="text-white display-1">
-                    Empowering people <br /> through seamless HR <br /> management.
+                    Empowering people <br /> through seamless HR <br />{" "}
+                    management.
                   </h1>
                   <div className="my-4 mx-auto authen-overlay-img">
-                    <ImageWithBasePath src="assets/img/bg/authentication-bg-01.png" alt="Img" />
+                    <ImageWithBasePath
+                      src="assets/img/bg/authentication-bg-01.png"
+                      alt="Img"
+                    />
                   </div>
                   <div>
                     <p className="text-white fs-20 fw-semibold text-center">
@@ -103,7 +127,9 @@ const Login = () => {
                     <div className="">
                       <div className="text-center mb-3">
                         <h2 className="mb-2">Sign In</h2>
-                        <p className="mb-0">Please enter your details to sign in</p>
+                        <p className="mb-0">
+                          Please enter your details to sign in
+                        </p>
                       </div>
                       <div className="mb-3">
                         <label className="form-label">Username</label>
@@ -124,31 +150,38 @@ const Login = () => {
                         <label className="form-label">Password</label>
                         <div className="pass-group">
                           <input
-                            type={passwordVisibility.password ? "text" : "password"}
+                            type={
+                              passwordVisibility.password ? "text" : "password"
+                            }
                             className="pass-input form-control"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                           />
                           <span
-                            className={`ti toggle-passwords ${passwordVisibility.password
-                              ? "ti-eye"
-                              : "ti-eye-off"
-                              }`}
-                            onClick={() =>
-                              togglePasswordVisibility("password")
-                            }
+                            className={`ti toggle-passwords ${
+                              passwordVisibility.password
+                                ? "ti-eye"
+                                : "ti-eye-off"
+                            }`}
+                            onClick={() => togglePasswordVisibility("password")}
                           ></span>
                         </div>
                       </div>
                       <div className="mb-3">
-                        <button type="submit" className="btn btn-primary w-100" onClick={handleSubmit}>
+                        <button
+                          type="submit"
+                          className="btn btn-primary w-100"
+                          onClick={handleSubmit}
+                        >
                           Sign In
                         </button>
                       </div>
                     </div>
                     <div className="mt-5 pb-4 text-center">
-                      <p className="mb-0 text-gray-9">Copyright © 2025 - NextPiQ</p>
+                      <p className="mb-0 text-gray-9">
+                        Copyright © 2025 - NextPiQ
+                      </p>
                     </div>
                   </div>
                 </form>
@@ -158,7 +191,6 @@ const Login = () => {
         </div>
       </div>
     </div>
-
   );
 };
 
