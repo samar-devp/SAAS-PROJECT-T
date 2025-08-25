@@ -7,6 +7,7 @@ import Login from "../auth/login/login";
 import AdminDashboard from "../adminDashboard";
 // import Companies from "../super-admin/companies";
 import Holidays from "../hrm/holidays";
+import Companies from "../super-admin/companies";
 const routes = all_routes;
 
 export const authRoutes = [
@@ -23,6 +24,11 @@ export const authRoutes = [
 ];
 
 export const publicRoutes = [
+   {
+    path: routes.adminDashboard,
+    element: <Companies />,
+    route: Route,
+  },
 
       {
     path: routes.adminDashboard,

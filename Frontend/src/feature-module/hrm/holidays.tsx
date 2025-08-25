@@ -10,11 +10,11 @@ import axios from "axios";
 const Holidays = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedHoliday, setSelectedHoliday] = useState<any>(null);
+const [selectedHoliday, setSelectedHoliday] = useState<any>(null);
 
-  const openEditModal = (holiday: any) => {
-    setSelectedHoliday(holiday);
-  };
+const openEditModal = (holiday: any) => {
+  setSelectedHoliday(holiday);
+};
   useEffect(() => {
     const fetchHolidays = async () => {
       try {
