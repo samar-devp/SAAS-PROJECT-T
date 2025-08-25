@@ -13,12 +13,18 @@ import ReactApexChart from "react-apexcharts";
 import CollapseHeader from "../../../core/common/collapse-header/collapse-header";
 
 type PasswordField = "password" | "confirmPassword";
-
 const Companies = () => {
-  // ✅ State to store fetched organization data
   const [data, setData] = useState([]);
+  type SummaryType = {
+  total: number;
+  active: number;
+  inactive: number;
+};
+
+  const [summary, setSummary] = useState<SummaryType | null>(null);
   const [loading, setLoading] = useState(true);
 
+<<<<<<< HEAD
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -102,18 +108,79 @@ const Companies = () => {
 
       sorter: (a: any, b: any) =>
         a.organization_name.length - b.organization_name.length,
+=======
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const token = sessionStorage.getItem("access_token");
+        const user_id = sessionStorage.getItem("user_id");
+        console.log(sessionStorage, "____________token")
+        console.log(token);
+
+        const response = await axios.get(
+          `http://127.0.0.1:8000/api/staff-list/${user_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        // ✅ Extract results array
+        setData(response.data.results);
+        setSummary(response.data.summary)
+        console.log(response.data.results, "===============asasas", response.data.summary)
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+        setLoading(false);
+      }
+    };
+    fetchCompanies();
+  }, []);
+
+  console.log(data); const columns = [
+    {
+      title: "Employee Name",
+      dataIndex: "user_name",
+      render: (text: string, record: any) => (
+        <div className="d-flex align-items-center file-name-icon">
+          <Link to="#" className="avatar avatar-md border rounded-circle">
+            <ImageWithBasePath
+              src={record.profile_photo_url || "assets/img/company/default.png"}
+              className="img-fluid"
+              alt="img"
+            />
+          </Link>
+          <div className="ms-2">
+            <h6 className="fw-medium mb-0">
+              <Link to="#">{record.user_name}</Link>
+            </h6>
+          </div>
+        </div>
+      ),
+      sorter: (a: any, b: any) => a.user_name.length - b.user_name.length,
+    },
+    {
+      title: "Username",
+      dataIndex: "user",
+      render: (user: any) => user.username,
+      sorter: (a: any, b: any) => a.user.username.length - b.user.username.length,
+>>>>>>> 56297563 (updated frontend code)
     },
     {
       title: "Email",
-      dataIndex: "Email",
-      sorter: (a: any, b: any) => a.Email.length - b.Email.length,
+      dataIndex: "user",
+      render: (user: any) => user.email,
+      sorter: (a: any, b: any) => a.user.email.length - b.user.email.length,
     },
     {
-      title: "Account URL",
-      dataIndex: "AccountURL",
-      sorter: (a: any, b: any) => a.AccountURL.length - b.AccountURL.length,
+      title: "Designation",
+      dataIndex: "designation",
+      sorter: (a: any, b: any) => a.designation.length - b.designation.length,
     },
     {
+<<<<<<< HEAD
       title: "Plan",
       dataIndex: "Plan",
       render: (text: String, record: any) => (
@@ -130,13 +197,21 @@ const Companies = () => {
         </div>
       ),
       sorter: (a: any, b: any) => a.Plan.length - b.Plan.length,
+=======
+      title: "Created At",
+      dataIndex: "created_at",
+      render: (text: string) => new Date(text).toLocaleDateString(),
+      sorter: (a: any, b: any) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+>>>>>>> 56297563 (updated frontend code)
     },
     {
-      title: "Created Date",
-      dataIndex: "CreatedDate",
-      sorter: (a: any, b: any) => a.CreatedDate.length - b.CreatedDate.length,
+      title: "Shift",
+      dataIndex: "shifts",
+      render: (shifts: number[]) => shifts.join(", "),
     },
     {
+<<<<<<< HEAD
       title: "Status",
       dataIndex: "Status",
       render: (text: string, record: any) => (
@@ -150,7 +225,34 @@ const Companies = () => {
         </span>
       ),
       sorter: (a: any, b: any) => a.Status.length - b.Status.length,
+=======
+      title: "Week Off",
+      dataIndex: "week_offs",
+      render: (week_offs: number[]) => week_offs.join(", "),
+>>>>>>> 56297563 (updated frontend code)
     },
+     {
+      title: "Location",
+      dataIndex: "locations",
+      render: (week_offs: number[]) => week_offs.join(", "),
+    },
+{
+  title: "Status",
+  dataIndex: "is_active",
+  render: (is_active: any) => {
+    console.log("Row data:", is_active); // ✅ check the data for this row
+    return (
+      <span
+        className={`badge ${
+          is_active ? "badge-success" : "badge-danger"
+        } d-inline-flex align-items-center badge-xs`}
+      >
+        <i className="ti ti-point-filled me-1" />
+        {is_active ? "Active" : "Inactive"}
+      </span>
+    );
+  },
+},
     {
       title: "",
       dataIndex: "actions",
@@ -603,7 +705,7 @@ const Companies = () => {
           {/* Breadcrumb */}
           <div className="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
             <div className="my-auto mb-2">
-              <h2 className="mb-1">Companies</h2>
+              <h2 className="mb-1">Employees</h2>
               <nav>
                 <ol className="breadcrumb mb-0">
                   <li className="breadcrumb-item">
@@ -611,13 +713,14 @@ const Companies = () => {
                       <i className="ti ti-smart-home" />
                     </Link>
                   </li>
-                  <li className="breadcrumb-item">Application</li>
+                  <li className="breadcrumb-item">Admin</li>
                   <li className="breadcrumb-item active" aria-current="page">
-                    Companies List
+                    Employees List
                   </li>
                 </ol>
               </nav>
             </div>
+<<<<<<< HEAD
             <div className="d-flex my-xl-auto right-content align-items-center flex-wrap ">
               <div className="me-2 mb-2">
                 <div className="dropdown">
@@ -660,10 +763,12 @@ const Companies = () => {
                 <CollapseHeader />
               </div>
             </div>
+=======
+>>>>>>> 56297563 (updated frontend code)
           </div>
           {/* /Breadcrumb */}
           <div className="row">
-            {/* Total Companies */}
+            {/* Total Employees */}
             <div className="col-lg-3 col-md-6 d-flex">
               <div className="card flex-fill">
                 <div className="card-body d-flex align-items-center justify-content-between">
@@ -673,9 +778,9 @@ const Companies = () => {
                     </span>
                     <div className="ms-2 overflow-hidden">
                       <p className="fs-12 fw-medium mb-1 text-truncate">
-                        Total Companies
+                        Total Employees
                       </p>
-                      <h4>950</h4>
+                      <h4>{summary?.total ?? 0}</h4>
                     </div>
                   </div>
                   <ReactApexChart
@@ -687,8 +792,8 @@ const Companies = () => {
                 </div>
               </div>
             </div>
-            {/* /Total Companies */}
-            {/* Total Companies */}
+            {/* /Total Employees */}
+            {/* Total Employees */}
             <div className="col-lg-3 col-md-6 d-flex">
               <div className="card flex-fill">
                 <div className="card-body d-flex align-items-center justify-content-between">
@@ -698,9 +803,9 @@ const Companies = () => {
                     </span>
                     <div className="ms-2 overflow-hidden">
                       <p className="fs-12 fw-medium mb-1 text-truncate">
-                        Active Companies
+                        Active Employees
                       </p>
-                      <h4>920</h4>
+                      <h4>{summary?.active ?? 0}</h4>
                     </div>
                   </div>
                   <ReactApexChart
@@ -712,8 +817,8 @@ const Companies = () => {
                 </div>
               </div>
             </div>
-            {/* /Total Companies */}
-            {/* Inactive Companies */}
+            {/* /Total Employees */}
+            {/* Inactive Employees */}
             <div className="col-lg-3 col-md-6 d-flex">
               <div className="card flex-fill">
                 <div className="card-body d-flex align-items-center justify-content-between">
@@ -723,9 +828,9 @@ const Companies = () => {
                     </span>
                     <div className="ms-2 overflow-hidden">
                       <p className="fs-12 fw-medium mb-1 text-truncate">
-                        Inactive Companies
+                        Inactive Employees
                       </p>
-                      <h4>30</h4>
+                      <h4>{summary?.inactive ?? 0}</h4>
                     </div>
                   </div>
                   <ReactApexChart
@@ -737,36 +842,11 @@ const Companies = () => {
                 </div>
               </div>
             </div>
-            {/* /Inactive Companies */}
-            {/* Company Location */}
-            <div className="col-lg-3 col-md-6 d-flex">
-              <div className="card flex-fill">
-                <div className="card-body d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center overflow-hidden">
-                    <span className="avatar avatar-lg bg-skyblue flex-shrink-0">
-                      <i className="ti ti-map-pin-check fs-16" />
-                    </span>
-                    <div className="ms-2 overflow-hidden">
-                      <p className="fs-12 fw-medium mb-1 text-truncate">
-                        Company Location
-                      </p>
-                      <h4>180</h4>
-                    </div>
-                  </div>
-                  <ReactApexChart
-                    options={locationChart}
-                    series={locationChart.series}
-                    type="area"
-                    width={50}
-                  />
-                </div>
-              </div>
-            </div>
-            {/* /Company Location */}
+            {/* /Inactive Employees */}
           </div>
           <div className="card">
             <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-              <h5>Companies List</h5>
+              <h5>Employees List</h5>
               <div className="d-flex my-xl-auto right-content align-items-center flex-wrap row-gap-3">
                 <div className="me-3">
                   <div className="input-icon-end position-relative">
@@ -782,6 +862,7 @@ const Companies = () => {
                     className="dropdown-toggle btn btn-white d-inline-flex align-items-center"
                     data-bs-toggle="dropdown"
                   >
+<<<<<<< HEAD
                     Select Plan
                   </Link>
                   <ul className="dropdown-menu  dropdown-menu-end p-3">
@@ -808,6 +889,8 @@ const Companies = () => {
                     className="dropdown-toggle btn btn-white d-inline-flex align-items-center"
                     data-bs-toggle="dropdown"
                   >
+=======
+>>>>>>> 56297563 (updated frontend code)
                     Select Status
                   </Link>
                   <ul className="dropdown-menu  dropdown-menu-end p-3">
@@ -1372,7 +1455,7 @@ const Companies = () => {
                 <div className="row align-items-center">
                   <div className="col-md-4">
                     <div className="mb-3">
-                      <p className="fs-12 mb-0">Company Name</p>
+                      <p className="fs-12 mb-0">Employee Name</p>
                       <p className="text-gray-9">BrightWave Innovations</p>
                     </div>
                   </div>

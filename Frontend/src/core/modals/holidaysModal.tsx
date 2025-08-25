@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // import React, { useState } from "react";
 // import axios from "axios";
 // import dayjs from "dayjs"; // date picker value handle
@@ -245,8 +246,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
+=======
+import CommonSelect from "../common/commonSelect";
+>>>>>>> 56297563 (updated frontend code)
 import { DatePicker } from "antd";
+import React, { useState } from "react";
+import axios from "axios";
 
+<<<<<<< HEAD
 interface Holiday {
   id: number;
   name: string;
@@ -317,12 +324,66 @@ const HolidaysModal: React.FC<{ selectedHoliday: Holiday | null }> = ({
       setEditHolidayDate("");
     }
   }, [selectedHoliday]);
+=======
+const HolidaysModal = () => {
+  const [date, setDate] = useState<string>("");
+
+  const [formData, setFormData] = useState({
+    title: "",
+    date: "",
+    description: "",
+    status: "Active",
+  });
+
+  const status = [
+    { value: "Active", label: "Active" },
+    { value: "Inactive", label: "Inactive" },
+  ];
+>>>>>>> 56297563 (updated frontend code)
 
   const getModalContainer = () => {
     const modalElement = document.getElementById("modal-datepicker");
     return modalElement ? modalElement : document.body;
   };
 
+<<<<<<< HEAD
+=======
+  // handle change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // API call
+  const handleSubmit = async () => {
+    try {
+      const token = sessionStorage.getItem("access_token");
+      const admin_id = sessionStorage.getItem("user_id");
+
+      const payload = {
+        name: formData.title,
+        holiday_date: formData.date,
+        description: formData.description,
+        is_active: formData.status === "Active",
+        admin: admin_id, 
+      };
+
+      const response = await axios.post(
+        `http://127.0.0.1:8000/api/holidays/${admin_id}`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log("Holiday added:", response.data);
+      alert("Holiday added successfully!");
+    } catch (error) {
+      console.error("Error adding holiday:", error);
+      alert("Failed to add holiday");
+    }
+  };
+>>>>>>> 56297563 (updated frontend code)
   return (
     <>
       {/* Add Holiday Modal */}
@@ -342,6 +403,7 @@ const HolidaysModal: React.FC<{ selectedHoliday: Holiday | null }> = ({
             </div>
             <form>
               <div className="modal-body pb-0">
+<<<<<<< HEAD
                 <div className="mb-3">
                   <label className="form-label">Title</label>
                   <input
@@ -369,6 +431,51 @@ const HolidaysModal: React.FC<{ selectedHoliday: Holiday | null }> = ({
                       }
                     }}
                   />
+=======
+                <div className="row">
+                  <div className="col-md-12">
+                    <div className="mb-3">
+                      <label className="form-label">name</label>
+                      <input
+                          type="text"
+                          className="form-control"
+                          name="title"
+                          value={formData.title}
+                          onChange={handleChange}
+                        />
+                    </div>
+                  </div>
+                  <div className="col-md-12">
+                    <div className="mb-3">
+                      <label className="form-label">Date</label>
+                      <div className="input-icon-end position-relative">
+                        <DatePicker
+                          format="YYYY-MM-DD"
+                          onChange={(_, dateString) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              date: dateString as string, // ✅ direct formData me set
+                            }))
+                          }
+                          placeholder="YYYY-MM-DD"
+                        />
+                        <span className="input-icon-addon">
+                          <i className="ti ti-calendar text-gray-7" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-12">
+                    <div className="mb-3">
+                      <label className="form-label">Status</label>
+                      <CommonSelect
+                        className="select"
+                        options={status}
+                        defaultValue={status[0]}
+                      />
+                    </div>
+                  </div>
+>>>>>>> 56297563 (updated frontend code)
                 </div>
               </div>
               <div className="modal-footer">
@@ -380,6 +487,7 @@ const HolidaysModal: React.FC<{ selectedHoliday: Holiday | null }> = ({
                   Cancel
                 </button>
                 <button
+<<<<<<< HEAD
                   type="button"
                   className="btn btn-primary"
                   data-bs-dismiss="modal"
@@ -387,6 +495,15 @@ const HolidaysModal: React.FC<{ selectedHoliday: Holiday | null }> = ({
                 >
                   Add Holiday
                 </button>
+=======
+      type="button"
+      className="btn btn-primary"
+      onClick={handleSubmit}
+      data-bs-dismiss="modal"
+    >
+      Add Holiday
+    </button>
+>>>>>>> 56297563 (updated frontend code)
               </div>
             </form>
           </div>
@@ -410,6 +527,7 @@ const HolidaysModal: React.FC<{ selectedHoliday: Holiday | null }> = ({
             </div>
             <form>
               <div className="modal-body pb-0">
+<<<<<<< HEAD
                 <div className="mb-3">
                   <label className="form-label">Title</label>
                   <input
@@ -439,6 +557,53 @@ const HolidaysModal: React.FC<{ selectedHoliday: Holiday | null }> = ({
                       }
                     }}
                   />
+=======
+                <div className="row">
+                  <div className="col-md-12">
+                    <div className="mb-3">
+                      <label className="form-label">Title</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        defaultValue="New Year"
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-12">
+                    <div className="mb-3">
+                      <label className="form-label">Date</label>
+                      <div>
+                        <DatePicker
+                            format="YYYY-MM-DD"
+                            onChange={(_, dateString) => setDate(dateString as string)} // ✅ cast to string
+                            placeholder="YYYY-MM-DD"
+                          />
+
+                          <p>Selected Date: {date}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-12">
+                    <div className="mb-3">
+                      <label className="form-label">Description</label>
+                      <textarea
+                        className="form-control"
+                        rows={3}
+                        defaultValue={"First day of the new year"}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-12">
+                    <div className="mb-3">
+                      <label className="form-label">Status</label>
+                      <CommonSelect
+                        className="select"
+                        options={status}
+                        defaultValue={status[1]}
+                      />
+                    </div>
+                  </div>
+>>>>>>> 56297563 (updated frontend code)
                 </div>
               </div>
               <div className="modal-footer">

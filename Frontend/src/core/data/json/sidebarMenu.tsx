@@ -192,8 +192,13 @@ export const SidebarDataTest = [
 
       //admin code
       {
+<<<<<<< HEAD
         label: "Admin",
         link: "apps",
+=======
+        label: 'Admin',
+        link: 'index',
+>>>>>>> 56297563 (updated frontend code)
         submenu: true,
         showSubRoute: false,
         icon: "user-star",
@@ -207,6 +212,7 @@ export const SidebarDataTest = [
           //   customSubmenuTwo: false,
           // },
           {
+<<<<<<< HEAD
             label: "Holidays",
             link: routes.holidays,
             base: "holidays",
@@ -263,6 +269,17 @@ export const SidebarDataTest = [
           //     },
           //   ],
           // },
+=======
+            label: 'All Employees',
+            link: routes.superAdminCompanies,
+            base: 'allEmployees',
+          },
+          {
+            label: 'Holidays',
+            link: routes.holidays,
+            base: 'holidays',
+          },
+>>>>>>> 56297563 (updated frontend code)
           // {
           //   label: "Calendar",
           //   showSubRoute: false,
