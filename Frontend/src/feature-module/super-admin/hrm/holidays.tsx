@@ -1,4 +1,3 @@
-// src/feature-module/pages/employee/Holidays.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -174,7 +173,6 @@ const Holidays = () => {
       </div>
 
       {/* Modals */}
-      <HolidaysModal selectedHoliday={selectedHoliday} />
       {/* ✅ DeleteModal हमेशा render करो */}
       <DeleteModal
         admin_id={admin_id}

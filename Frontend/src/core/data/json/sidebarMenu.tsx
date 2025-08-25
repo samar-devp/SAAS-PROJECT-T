@@ -192,13 +192,8 @@ export const SidebarDataTest = [
 
       //admin code
       {
-<<<<<<< HEAD
-        label: "Admin",
-        link: "apps",
-=======
         label: 'Admin',
         link: 'index',
->>>>>>> 56297563 (updated frontend code)
         submenu: true,
         showSubRoute: false,
         icon: "user-star",
@@ -212,64 +207,6 @@ export const SidebarDataTest = [
           //   customSubmenuTwo: false,
           // },
           {
-<<<<<<< HEAD
-            label: "Holidays",
-            link: routes.holidays,
-            base: "holidays",
-            submenu: false,
-            showSubRoute: false,
-            icon: "calendar-event",
-            materialicons: "confirmation_number",
-            submenuItems: [],
-          },
-          // {
-          //   label: "Calls",
-          //   customSubmenuTwo: true,
-          //   submenu: true,
-          //   showSubRoute: false,
-          //   link: routes.voiceCall,
-          //   page1: "voice-call",
-          //   page2: "videocall",
-          //   base: "calls",
-          //   submenuItems: [
-          //     {
-          //       label: "Voice Call",
-          //       link: routes.voiceCall,
-          //       submenu: false,
-          //       showSubRoute: false,
-          //       base: "voice-call",
-          //     },
-          //     {
-          //       label: "Video Call",
-          //       link: routes.videoCall,
-          //       submenu: false,
-          //       showSubRoute: false,
-          //       base: "video-call",
-          //     },
-          //     {
-          //       label: "Outgoing Call",
-          //       link: routes.outgoingCall,
-          //       submenu: false,
-          //       showSubRoute: false,
-          //       base: "outgoing-call",
-          //     },
-          //     {
-          //       label: "Incoming Call",
-          //       link: routes.incomingCall,
-          //       submenu: false,
-          //       showSubRoute: false,
-          //       base: "incoming-call",
-          //     },
-          //     {
-          //       label: "Call History",
-          //       link: routes.callHistory,
-          //       submenu: false,
-          //       showSubRoute: false,
-          //       base: "call-history",
-          //     },
-          //   ],
-          // },
-=======
             label: 'All Employees',
             link: routes.superAdminCompanies,
             base: 'allEmployees',
@@ -279,7 +216,6 @@ export const SidebarDataTest = [
             link: routes.holidays,
             base: 'holidays',
           },
->>>>>>> 56297563 (updated frontend code)
           // {
           //   label: "Calendar",
           //   showSubRoute: false,

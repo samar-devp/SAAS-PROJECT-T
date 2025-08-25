@@ -3,9 +3,9 @@ import { all_routes } from "./all_routes";
 
 import Register from "../auth/register/register";
 import Login from "../auth/login/login";
-import Holidays from "../super-admin/hrm/holidays";
+// import Holidays from "../super-admin/hrm/holidays";
 import AdminDashboard from "../adminDashboard";
-import Companies from "../super-admin/companies";
+// import Companies from "../super-admin/companies";
 import Holidays from "../hrm/holidays";
 const routes = all_routes;
 
@@ -23,13 +23,9 @@ export const authRoutes = [
 ];
 
 export const publicRoutes = [
-  {
-    path: routes.adminDashboard,
-    element: <Companies />,
-    route: Route,
-  },
+
       {
-    path: routes.holidays,
+    path: routes.adminDashboard,
     element: <Holidays />,
     route: Route,
   },

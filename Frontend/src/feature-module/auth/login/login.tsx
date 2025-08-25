@@ -48,20 +48,6 @@ const Login = () => {
       } 
       else{
       // ✅ Store tokens and user data
-<<<<<<< HEAD
-      localStorage.setItem("access_token", access_token);
-      localStorage.setItem("refresh_token", refresh_token);
-      localStorage.setItem("user_id", user_id);
-      localStorage.setItem("role", role);
-
-      // Navigate to admin dashboard
-
-      if (role !== "admin") {
-        toast.error("Login failed");
-      } else {
-        navigation(routes.adminDashboard);
-      }
-=======
       sessionStorage.setItem("access_token", access_token);
       sessionStorage.setItem("refresh_token", refresh_token);
       sessionStorage.setItem("user_id", user_id);
@@ -69,7 +55,6 @@ const Login = () => {
       navigation(routes.adminDashboard);
       }
       // Navigate to admin dashboard
->>>>>>> 56297563 (updated frontend code)
     } catch (err: any) {
       console.log("_____________error");
       toast.error(err.response?.data?.error || "Login failed");
