@@ -1,5 +1,6 @@
 from django.db import models
-from AuthN.models import *
+from AuthN.models import *  # Import your custom BaseUserModel
+
 # Create your models here.
 class WeekOffPolicy(models.Model):
     id = models.BigAutoField(primary_key=True)

@@ -2,6 +2,8 @@ from django.db import models
 import uuid
 from AuthN.models import *
 from datetime import datetime, timedelta , time
+from AuthN.models import *  # Import your custom BaseUserModel
+
 
 class ServiceShift(models.Model):
     id = models.BigAutoField(primary_key=True)

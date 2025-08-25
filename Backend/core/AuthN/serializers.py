@@ -5,6 +5,7 @@ from ServiceShift.models import *
 from ServiceWeekOff.models import *
 from TaskControl.models import *
 from Expenditure.models import * 
+from django.db import transaction
 
 class CustomUserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(required=False)
@@ -80,39 +81,56 @@ class AdminProfileSerializer(serializers.ModelSerializer):
         return admin_profile
 
 
-# User Profile Serializer (FK to Admin)
 class UserProfileSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer()
     admin = serializers.PrimaryKeyRelatedField(queryset=BaseUserModel.objects.all())
+    is_active = serializers.BooleanField(source='user.is_active', required=False)
+
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'user_name', 'admin', 'organization']
+        fields = "__all__"
         read_only_fields = ['id']
 
+    @transaction.atomic
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         user_data['role'] = 'user'
         user = BaseUserModel.objects.create_user(**user_data)
 
         admin_user = validated_data['admin']
-        admin_profile = AdminProfile.objects.get(user=admin_user)
+        try:
+            admin_profile = AdminProfile.objects.get(user=admin_user)
+        except AdminProfile.DoesNotExist:
+            raise serializers.ValidationError("Selected admin has no AdminProfile")
+
         validated_data['organization'] = admin_profile.organization
 
-        # Temporarily remove many-to-many fields from validated_data
+        # Create profile first
+        profile = UserProfile.objects.create(user=user, **validated_data)
+
+        # Assign defaults (M2M fields)
         shift_ids = ServiceShift.objects.filter(admin=admin_user, is_active=True).values_list('id', flat=True)[:1]
         week_off_ids = WeekOffPolicy.objects.filter(admin=admin_user).values_list('id', flat=True)[:1]
         location_ids = Location.objects.filter(admin=admin_user, is_active=True).values_list('id', flat=True)[:1]
 
-        # Create the user profile first (without M2M fields)
-        profile = UserProfile.objects.create(user=user, **validated_data)
-
-        # Then assign the M2M fields
         profile.shifts.set(shift_ids)
         profile.week_offs.set(week_off_ids)
         profile.locations.set(location_ids)
 
         return profile
+    
+    def update(self, instance, validated_data):
+        # update only user.is_active
+        print(f"==>> validated_data: {validated_data}")
+        user_data = validated_data.pop('user', {})
+        print(f"==>> user_data: {user_data}")
+        if 'is_active' in user_data:
+            print(f"==>> instance: {instance}")
+            instance.user.is_active = user_data['is_active']
+            instance.user.save()
+
+        return instance
 
 
 class OrganizationSettingsSerializer(serializers.ModelSerializer):

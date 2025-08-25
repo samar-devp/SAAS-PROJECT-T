@@ -7,7 +7,6 @@ class Holiday(models.Model):
     admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE , limit_choices_to={'role': 'admin'}, related_name="admin_holiday")
     organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name="organization_holiday")
     name = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
     holiday_date = models.DateField()
     is_optional = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

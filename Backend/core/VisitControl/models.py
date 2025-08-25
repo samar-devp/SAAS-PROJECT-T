@@ -2,7 +2,7 @@ from django.db import models
 from AuthN.models import *
 # Create your models here.
 class VisitAssignment(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.BigAutoField(primary_key=True)
     admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
     organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)
     assigned_user = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE)

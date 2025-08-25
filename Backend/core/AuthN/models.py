@@ -3,6 +3,7 @@ from django.db import models
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
 from django.utils.timezone import now
+
 # ---------------------------
 # ✅ Custom User Manager
 # ---------------------------
@@ -79,8 +80,63 @@ class OrganizationProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
  
-class OrganizationSettings(models.Model): 
+class AdminProfile(models.Model): 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # (IGNORE NOT IN USED)
+    user = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'},related_name='own_admin_profile')
+    admin_name = models.CharField(max_length=255)
+    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name='under_organization_profile')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+from ServiceShift.models import *
+from ServiceWeekOff.models import *
+from LocationControl.models import *
+class UserProfile(models.Model):
+    TYPE_CHOICES = [
+        ("employee", "Employee"),
+        ("supervisor", "Supervisor"),
+    ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) # (IGNORE NOT IN USED)
+    user = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'user'},related_name='own_user_profile')
+    user_name = models.CharField(max_length=255)
+    admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'},related_name='under_admin_profile')
+    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name='under_organization_profile_user')
+    profile_photo_url = models.CharField(max_length=500, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    marital_status = models.CharField(max_length=50, blank=True)
+    gender = models.CharField(max_length=20, blank=True)
+    blood_group = models.CharField(max_length=10, blank=True)
+    date_of_joining = models.DateField(null=True, blank=True)
+    allow_geo_fencing = models.BooleanField(default=False)
+    job_title = models.CharField(max_length=255, blank=True)
+    fcm_token = models.CharField(max_length=255, blank=True)
+    radius = models.IntegerField(null=True, blank=True)
+    shifts = models.ManyToManyField(ServiceShift, blank=True, related_name='users_shifts')
+    week_offs = models.ManyToManyField(WeekOffPolicy, blank=True, related_name='users_week_off')
+    locations = models.ManyToManyField(Location, blank=True, related_name='users_location')
+    custom_employee_id = models.CharField(max_length=255, blank=True)
+    aadhaar_number = models.CharField(max_length=20, blank=True)
+    pan_number = models.CharField(max_length=20, blank=True)
+    referral_contact_number = models.CharField(max_length=20, blank=True)
+    bank_account_no = models.CharField(max_length=30, blank=True)
+    bank_ifsc_code = models.CharField(max_length=20, blank=True)
+    bank_name = models.CharField(max_length=100, blank=True)
+    pf_number = models.CharField(max_length=30, blank=True)
+    esic_number = models.CharField(max_length=30, blank=True)
+    bank_address = models.TextField(blank=True)
+    emergency_contact_no = models.CharField(max_length=20, blank=True)
+    designation = models.CharField(max_length=100, blank=True)
+    user_type = models.CharField(max_length=100,choices=TYPE_CHOICES,default="employee")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.user_name
+
+
+class OrganizationSettings(models.Model): 
+    id = models.BigAutoField(primary_key=True)
     organization = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, unique=True,limit_choices_to={'role': 'organization'},  related_name='own_organization_profile_setting')
     organization_logo = models.CharField(max_length=500, blank=True)
     face_recognition_enabled = models.BooleanField(default=False)
@@ -124,52 +180,4 @@ class OrganizationSettings(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class AdminProfile(models.Model): 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # (IGNORE NOT IN USED)
-    user = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'},related_name='own_admin_profile')
-    admin_name = models.CharField(max_length=255)
-    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name='under_organization_profile')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-
-from ServiceShift.models import *
-from ServiceWeekOff.models import *
-from LocationControl.models import *
-class UserProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) # (IGNORE NOT IN USED)
-    user = models.OneToOneField(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'user'},related_name='own_user_profile')
-    user_name = models.CharField(max_length=255)
-    admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'},related_name='under_admin_profile')
-    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name='under_organization_profile_user')
-    profile_photo_url = models.CharField(max_length=500, blank=True)
-    date_of_birth = models.DateField(null=True, blank=True)
-    marital_status = models.CharField(max_length=50, blank=True)
-    gender = models.CharField(max_length=20, blank=True)
-    blood_group = models.CharField(max_length=10, blank=True)
-    date_of_joining = models.DateField(null=True, blank=True)
-    allow_geo_fencing = models.BooleanField(default=False)
-    job_title = models.CharField(max_length=255, blank=True)
-    fcm_token = models.CharField(max_length=255, blank=True)
-    radius = models.IntegerField(null=True, blank=True)
-    shifts = models.ManyToManyField(ServiceShift, blank=True, related_name='users_shifts')
-    week_offs = models.ManyToManyField(WeekOffPolicy, blank=True, related_name='users_week_off')
-    locations = models.ManyToManyField(Location, blank=True, related_name='users_location')
-    custom_employee_id = models.CharField(max_length=255, blank=True)
-    aadhaar_number = models.CharField(max_length=20, blank=True)
-    pan_number = models.CharField(max_length=20, blank=True)
-    referral_contact_number = models.CharField(max_length=20, blank=True)
-    bank_account_no = models.CharField(max_length=30, blank=True)
-    bank_ifsc_code = models.CharField(max_length=20, blank=True)
-    bank_name = models.CharField(max_length=100, blank=True)
-    pf_number = models.CharField(max_length=30, blank=True)
-    esic_number = models.CharField(max_length=30, blank=True)
-    bank_address = models.TextField(blank=True)
-    emergency_contact_no = models.CharField(max_length=20, blank=True)
-    designation = models.CharField(max_length=100, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.user_name
