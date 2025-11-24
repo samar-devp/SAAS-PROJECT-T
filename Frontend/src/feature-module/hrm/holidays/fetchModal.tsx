@@ -1,47 +1,55 @@
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import CollapseHeader from "../../core/common/collapse-header/collapse-header";
-import { all_routes } from "../router/all_routes";
-import Table from "../../core/common/dataTable/index";
-import { HolidaysData } from "../../core/data/json/holidaysData";
-import HolidaysModal from "../../core/modals/holidaysModal";
-import React, { useEffect, useState } from "react";
 import axios from "axios";
+import CollapseHeader from "../../../core/common/collapse-header/collapse-header";
+import { all_routes } from "../../router/all_routes";
+import Table from "../../../core/common/dataTable/index";
+import HolidaysModal from "./CreateModal";
+import DeleteModal from "./deleteModal";
+
+const getHolidayKey = (holiday: any) =>
+  holiday?.id ?? holiday?.holiday_id ?? holiday?.holidayId ?? null;
+
+const normalizeHolidayId = (value: any): number | null => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
 
 const Holidays = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-const [selectedHoliday, setSelectedHoliday] = useState<any>(null);
+  const [holidayIdToDelete, setHolidayIdToDelete] = useState<number | null>(null);
+  const [editingHoliday, setEditingHoliday] = useState<any>(null);
 
-const openEditModal = (holiday: any) => {
-  setSelectedHoliday(holiday);
-};
-  useEffect(() => {
-    const fetchHolidays = async () => {
-      try {
-        const token = sessionStorage.getItem("access_token");
-        const admin_id = sessionStorage.getItem("user_id"); // or organization_id depending on backend
+  const fetchHolidays = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = sessionStorage.getItem("access_token");
+      const admin_id = sessionStorage.getItem("user_id");
 
-        const response = await axios.get(
-          `http://127.0.0.1:8000/api/holidays/${admin_id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/holidays/${admin_id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-        // API returns array → set it directly
-        console.log(response.data, "_____________ASasasa")
-        setData(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching holidays:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchHolidays();
+      setData(response.data);
+    } catch (error) {
+      console.error("Error fetching holidays:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchHolidays();
+  }, [fetchHolidays]);
   const routes = all_routes;
   // const data = data;
   const columns = [
@@ -92,7 +100,7 @@ const openEditModal = (holiday: any) => {
         className="me-2"
         data-bs-toggle="modal"
         data-bs-target="#edit_holiday"
-        onClick={() => openEditModal(holiday)} // ✅ row data pass karke modal kholenge
+        onClick={() => setEditingHoliday(holiday)}
       >
         <i className="ti ti-edit" />
       </Link>
@@ -100,6 +108,7 @@ const openEditModal = (holiday: any) => {
         to="#"
         data-bs-toggle="modal"
         data-bs-target="#delete_modal"
+        onClick={() => setHolidayIdToDelete(normalizeHolidayId(getHolidayKey(holiday)))}
       >
         <i className="ti ti-trash" />
       </Link>
@@ -173,7 +182,43 @@ const openEditModal = (holiday: any) => {
       </div>
       {/* /Page Wrapper */}
 
-      <HolidaysModal />
+      <HolidaysModal
+        onHolidayAdded={(newHoliday) => {
+          setData((prev) => [newHoliday, ...prev]);
+          fetchHolidays();
+        }}
+        editingHoliday={editingHoliday}
+        onEditClose={() => setEditingHoliday(null)}
+        onHolidayUpdated={(updatedHoliday) => {
+          const updatedId = normalizeHolidayId(getHolidayKey(updatedHoliday));
+          if (updatedId === null) {
+            fetchHolidays();
+            return;
+          }
+          setData((prev) =>
+            prev.map((holiday) =>
+              normalizeHolidayId(getHolidayKey(holiday)) === updatedId ? updatedHoliday : holiday
+            )
+          );
+          fetchHolidays();
+        }}
+      />
+      <DeleteModal
+        admin_id={typeof window !== "undefined" ? sessionStorage.getItem("user_id") : null}
+        holidayId={holidayIdToDelete}
+        onDeleted={() => {
+          if (holidayIdToDelete !== null) {
+            setData((prev) =>
+              prev.filter(
+                (holiday) =>
+                  normalizeHolidayId(getHolidayKey(holiday)) !== holidayIdToDelete
+              )
+            );
+          }
+          setHolidayIdToDelete(null);
+          fetchHolidays();
+        }}
+      />
     </>
   );
 };

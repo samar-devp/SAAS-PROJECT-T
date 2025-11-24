@@ -10,7 +10,7 @@ import {
   setDataLayout,
 } from "../../data/redux/themeSettingSlice";
 import usePreviousRoute from "./usePreviousRoute";
-import { SidebarDataTest } from "../../data/json/sidebarMenu";
+import { SidebarDataTest } from "../sidebarMenu";
 
 const Sidebar = () => {
   const Location = useLocation();

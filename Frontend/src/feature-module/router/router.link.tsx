@@ -6,8 +6,11 @@ import Login from "../auth/login/login";
 // import Holidays from "../super-admin/hrm/holidays";
 import AdminDashboard from "../adminDashboard";
 // import Companies from "../super-admin/companies";
-import Holidays from "../hrm/holidays";
+import Holidays from "../hrm/holidays/fetchModal";
 import Companies from "../super-admin/companies";
+import UnderConstruction from "../pages/underConstruction";
+import ServiceShifts from "../hrm/shifts/fetchModal";
+
 const routes = all_routes;
 
 export const authRoutes = [
@@ -45,5 +48,13 @@ export const publicRoutes = [
     path: routes.holidays,
     element: <Holidays />,
     route: Route,
+  },
+  {
+    path: routes.underConstruction,
+    element: <UnderConstruction />,
+  },
+  {
+    path: routes.serviceShifts,
+    element: <ServiceShifts />,
   },
 ];

@@ -137,7 +137,7 @@
 
 // src/layout/Feature.tsx
 import { useSelector } from "react-redux";
-import { Outlet, useLocation } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Header from "../core/common/header";
 import Sidebar from "../core/common/sidebar";
 import ThemeSettings from "../core/common/theme-settings";
@@ -145,6 +145,7 @@ import { useEffect, useState } from "react";
 import HorizontalSidebar from "../core/common/horizontal-sidebar";
 import TwoColumnSidebar from "../core/common/two-column";
 import StackedSidebar from "../core/common/stacked-sidebar";
+import { all_routes } from "./router/all_routes";
 
 const Feature = () => {
   const [showLoader, setShowLoader] = useState(true);
@@ -161,6 +162,10 @@ const Feature = () => {
   const dataTopBarColorAll = useSelector((state: any) => state.themeSetting.dataTopBarColorAll);
   const dataTopbarAll = useSelector((state: any) => state.themeSetting.dataTopbarAll);
   const location = useLocation();
+
+  const routes = all_routes;
+  const isBrowser = typeof window !== "undefined";
+  const isAuthenticated = isBrowser && !!sessionStorage.getItem("access_token");
 
   useEffect(() => {
     document.documentElement.setAttribute(
@@ -185,6 +190,10 @@ const Feature = () => {
       <div className="page-loader"></div>
     </div>
   );
+
+  if (!isAuthenticated) {
+    return <Navigate to={routes.login} replace state={{ from: location.pathname }} />;
+  }
 
   return (
     <>
