@@ -93,7 +93,7 @@ const TwoColumnSidebar = () => {
             <div className="sidebar-right">
                 <div className="sidebar-logo mb-4">
                     <Link to={routes.adminDashboard} className="logo logo-normal">
-                        <ImageWithBasePath src="assets/img/logo.svg" alt="Logo"/>
+                        <ImageWithBasePath src="assets/img/logo/logo (2).png" alt="Logo"   className="login-logo"/>
                     </Link>
                     <Link to={routes.adminDashboard} className="dark-logo">
                         <ImageWithBasePath src="assets/img/logo-white.svg" alt="Logo"/>

@@ -114,7 +114,7 @@ class UserProfile(models.Model):
     shifts = models.ManyToManyField(ServiceShift, blank=True, related_name='users_shifts')
     week_offs = models.ManyToManyField(WeekOffPolicy, blank=True, related_name='users_week_off')
     locations = models.ManyToManyField(Location, blank=True, related_name='users_location')
-    custom_employee_id = models.CharField(max_length=255, blank=True)
+    custom_employee_id = models.CharField(max_length=255, blank=False, null=False, unique=True)
     aadhaar_number = models.CharField(max_length=20, blank=True)
     pan_number = models.CharField(max_length=20, blank=True)
     referral_contact_number = models.CharField(max_length=20, blank=True)

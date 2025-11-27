@@ -5,11 +5,13 @@ import Register from "../auth/register/register";
 import Login from "../auth/login/login";
 // import Holidays from "../super-admin/hrm/holidays";
 import AdminDashboard from "../adminDashboard";
+import AttendanceAdmin from "../hrm/attendance/fetchModal";
 // import Companies from "../super-admin/companies";
 import Holidays from "../hrm/holidays/fetchModal";
 import Companies from "../super-admin/companies";
 import UnderConstruction from "../pages/underConstruction";
 import ServiceShifts from "../hrm/shifts/fetchModal";
+import LeaveTypes from "../hrm/leave/fetchModal";
 
 const routes = all_routes;
 
@@ -57,4 +59,12 @@ export const publicRoutes = [
     path: routes.serviceShifts,
     element: <ServiceShifts />,
   },
+  {
+    path: routes.leaveTypes,
+    element: <LeaveTypes />,
+  },
+  {
+  path: routes.attendanceadmin,
+  element: <AttendanceAdmin />,
+},
 ];

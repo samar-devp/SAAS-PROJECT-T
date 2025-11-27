@@ -85,12 +85,29 @@ class UserProfileSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer()
     admin = serializers.PrimaryKeyRelatedField(queryset=BaseUserModel.objects.all())
     is_active = serializers.BooleanField(source='user.is_active', required=False)
-
+    custom_employee_id = serializers.CharField(required=True, max_length=255)
 
     class Meta:
         model = UserProfile
         fields = "__all__"
         read_only_fields = ['id']
+
+    def validate_custom_employee_id(self, value):
+        """Validate that custom_employee_id is unique"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("custom_employee_id is required and cannot be empty.")
+        
+        # Check if this is an update (instance exists) or create (no instance)
+        if self.instance:
+            # For update, check if another user has this ID
+            if UserProfile.objects.filter(custom_employee_id=value).exclude(id=self.instance.id).exists():
+                raise serializers.ValidationError("This custom_employee_id is already taken.")
+        else:
+            # For create, check if any user has this ID
+            if UserProfile.objects.filter(custom_employee_id=value).exists():
+                raise serializers.ValidationError("This custom_employee_id is already taken.")
+        
+        return value.strip()
 
     @transaction.atomic
     def create(self, validated_data):
@@ -105,6 +122,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Selected admin has no AdminProfile")
 
         validated_data['organization'] = admin_profile.organization
+
+        # Ensure custom_employee_id is provided
+        if 'custom_employee_id' not in validated_data or not validated_data['custom_employee_id']:
+            raise serializers.ValidationError({"custom_employee_id": "This field is required."})
 
         # Create profile first
         profile = UserProfile.objects.create(user=user, **validated_data)

@@ -817,3 +817,11 @@
 .feather-zoom-out:before {
 	content: "\ea09";
 }
+.login-logo {
+	width: 227px;
+	height: auto;
+	margin-top: -80px;
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+  }

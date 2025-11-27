@@ -193,11 +193,11 @@ export const SidebarDataTest = [
       //admin code
           {
             label: 'Dashboard',
-            link: 'index',
+            link:  routes.attendanceadmin,
             submenu: false,
             showSubRoute: false,
             icon: "smart-home",
-            base: "application",
+            base: "attendance",
             materialicons: "dashboard",
           },
       
@@ -359,7 +359,7 @@ export const SidebarDataTest = [
               },
               {
                 label: 'Leave Policies',
-                link: routes.underConstruction,
+                link: routes.leaveTypes,
                 base: 'leave-policies',
               },
             ],

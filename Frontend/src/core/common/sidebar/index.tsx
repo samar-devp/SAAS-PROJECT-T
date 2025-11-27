@@ -122,7 +122,7 @@ const Sidebar = () => {
       >
   <div className="sidebar-logo">
     <Link to="routes.index" className="logo logo-normal">
-      <ImageWithBasePath src="assets/img/logo.svg" alt="Logo" />
+      <ImageWithBasePath src="assets/img/logo/logo (2).png" alt="Logo"   className="login-logo"/>
     </Link>
     <Link to="routes.index" className="logo-small">
       <ImageWithBasePath src="assets/img/logo-small.svg" alt="Logo" />

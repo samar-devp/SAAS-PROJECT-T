@@ -13,8 +13,6 @@ from .models import ServiceShift  # shift model ka import
 class Attendance(models.Model):
     id = models.BigAutoField(primary_key=True)
     user = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'user'}, related_name="user_self_attendnace")
-    admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'}, related_name="admin_attendnace")
-    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'}, related_name="organization_attendances")
     
     assign_shift = models.ForeignKey(  # ✅ New field
         ServiceShift,

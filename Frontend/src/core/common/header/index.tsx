@@ -84,7 +84,7 @@ const Header = () => {
 
 				<div className="header-left">
 					<Link to={routes.adminDashboard} className="logo">
-						<ImageWithBasePath src="assets/img/logo.svg" alt="Logo"/>
+						<ImageWithBasePath src="assets/img/logo/logo (2).png" alt="Logo"   className="login-logo"/>
 					</Link>
 					<Link to={routes.adminDashboard} className="dark-logo">
 						<ImageWithBasePath src="assets/img/logo-white.svg" alt="Logo"/>
