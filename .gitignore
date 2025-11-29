@@ -1,10 +1,7 @@
-# Large zip files that exceed GitHub's 100MB limit
-SMART-HR-REACT/*.zip
-SMART-HR-REACT/html.zip
-SMART-HR-REACT/codecanyon-*.zip
-SMART-HR-REACT/react.zip
+# Ignore entire SMART-HR-REACT folder
+SMART-HR-REACT/
 
-# Common large files
+# Large zip files that exceed GitHub's 100MB limit
 *.zip
 *.tar.gz
 *.rar
