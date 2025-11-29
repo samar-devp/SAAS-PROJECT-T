@@ -86,11 +86,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
     admin = serializers.PrimaryKeyRelatedField(queryset=BaseUserModel.objects.all())
     is_active = serializers.BooleanField(source='user.is_active', required=False)
     custom_employee_id = serializers.CharField(required=True, max_length=255)
+    profile_photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
         fields = "__all__"
         read_only_fields = ['id']
+    
+    def get_profile_photo_url(self, obj):
+        """Return full URL for profile photo"""
+        if obj.profile_photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            # Fallback if no request context
+            return obj.profile_photo.url
+        return None
 
     def validate_custom_employee_id(self, value):
         """Validate that custom_employee_id is unique"""

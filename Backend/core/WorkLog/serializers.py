@@ -3,8 +3,18 @@ from rest_framework import serializers
 from .models import Attendance
 from datetime import datetime, date
 from utils.Attendance.attendance_utils import *
+from utils.helpers.image_utils import save_multiple_base64_images
 
 class AttendanceSerializer(serializers.ModelSerializer):
+    # Custom field to accept base64 images from frontend (can be single string or list)
+    base64_images = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        write_only=True,
+        help_text="Base64 encoded image string (single image)"
+    )
+    
     class Meta:
         model = Attendance
         fields = '__all__'
@@ -14,6 +24,49 @@ class AttendanceSerializer(serializers.ModelSerializer):
         if not data.get('check_in_time') and not data.get('check_out_time'):
             raise serializers.ValidationError("At least check_in_time or check_out_time is required.")
         return data
+    
+    def create(self, validated_data):
+        # Extract base64_images if present and normalize to list
+        base64_images = validated_data.pop('base64_images', None)
+        if base64_images and isinstance(base64_images, str):
+            base64_images = [base64_images]
+        
+        # Determine image type based on check_in_time (if check_in_time exists, it's check-in)
+        image_type = 'check_in' if validated_data.get('check_in_time') else 'check_out'
+        captured_at = validated_data.get('check_in_time') or validated_data.get('check_out_time')
+        
+        # Create attendance instance
+        attendance = super().create(validated_data)
+        
+        # Image processing removed - images are no longer stored
+        return attendance
+    
+    def update(self, instance, validated_data):
+        # Extract base64_images if present and normalize to list
+        base64_images = validated_data.pop('base64_images', None)
+        if base64_images and isinstance(base64_images, str):
+            base64_images = [base64_images]
+        
+        # Determine image type based on what's being updated
+        image_type = 'check_out'
+        captured_at = None
+        
+        if 'check_in_time' in validated_data:
+            image_type = 'check_in'
+            captured_at = validated_data.get('check_in_time')
+        elif 'check_out_time' in validated_data:
+            image_type = 'check_out'
+            captured_at = validated_data.get('check_out_time')
+        else:
+            # Default to check_out if neither is being updated
+            image_type = 'check_out'
+            captured_at = instance.check_out_time or datetime.now()
+        
+        # Update attendance instance
+        attendance = super().update(instance, validated_data)
+        
+        # Image processing removed - images are no longer stored
+        return attendance
 
 
 class AttendanceOutputSerializer(serializers.Serializer):
@@ -41,9 +94,26 @@ class AttendanceOutputSerializer(serializers.Serializer):
 
 
 class EditAttendanceSerializer(serializers.ModelSerializer):
+    # Custom field to accept base64 images from frontend (can be single string or list)
+    base64_images = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        write_only=True,
+        help_text="Base64 encoded image string (single image) or list of base64 strings"
+    )
+    
+    def to_internal_value(self, data):
+        # Convert single string to list if needed
+        if 'base64_images' in data:
+            if isinstance(data['base64_images'], str):
+                data = data.copy()
+                data['base64_images'] = [data['base64_images']]
+        return super().to_internal_value(data)
+    
     class Meta:
         model = Attendance
-        fields = ["check_in_time", "check_out_time", "remarks"]
+        fields = ["check_in_time", "check_out_time", "remarks", "base64_images"]
 
     def validate(self, data):
         check_in = data.get("check_in_time")
@@ -53,3 +123,30 @@ class EditAttendanceSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Check-out cannot be before check-in.")
 
         return data
+    
+    def update(self, instance, validated_data):
+        # Extract base64_images if present and normalize to list
+        base64_images = validated_data.pop('base64_images', None)
+        if base64_images and isinstance(base64_images, str):
+            base64_images = [base64_images]
+        
+        # Determine image type based on what's being updated
+        image_type = 'check_out'
+        captured_at = None
+        
+        if 'check_in_time' in validated_data:
+            image_type = 'check_in'
+            captured_at = validated_data.get('check_in_time')
+        elif 'check_out_time' in validated_data:
+            image_type = 'check_out'
+            captured_at = validated_data.get('check_out_time')
+        else:
+            # Default to check_out if neither is being updated
+            image_type = 'check_out'
+            captured_at = instance.check_out_time or datetime.now()
+        
+        # Update attendance instance
+        attendance = super().update(instance, validated_data)
+        
+        # Image processing removed - images are no longer stored
+        return attendance

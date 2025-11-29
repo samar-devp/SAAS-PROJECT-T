@@ -38,8 +38,8 @@ class StaffListByAdmin(APIView):
             paginator = self.pagination_class()
             paginated_qs = paginator.paginate_queryset(queryset, request)
 
-            # serialize
-            serializer = UserProfileSerializer(paginated_qs, many=True)
+            # serialize with request context for image URLs
+            serializer = UserProfileSerializer(paginated_qs, many=True, context={'request': request})
 
             # ✅ since your CustomPagination returns a dict
             pagination_data = paginator.get_paginated_response(serializer.data)

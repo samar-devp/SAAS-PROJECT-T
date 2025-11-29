@@ -167,6 +167,14 @@ import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Image Storage Settings
+ATTENDANCE_IMAGE_MAX_SIZE_MB = 3  # Maximum size per image in MB (default: 3MB)
+ATTENDANCE_IMAGE_MAX_COUNT = 2  # Maximum number of images per check-in/check-out
+ATTENDANCE_IMAGE_ALLOWED_FORMATS = ['jpg', 'jpeg', 'png', 'webp']  # Allowed image formats
+ATTENDANCE_IMAGE_QUALITY = 85  # JPEG quality (1-100, lower = smaller file)
+ATTENDANCE_IMAGE_MAX_WIDTH = 1920  # Maximum image width in pixels (will be resized if larger)
+ATTENDANCE_IMAGE_MAX_HEIGHT = 1080  # Maximum image height in pixels (will be resized if larger)
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -186,6 +194,30 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = False
+
+# Cache Configuration (for high-traffic APIs)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',  # Use different DB than Celery
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'attendance_cache',
+        'TIMEOUT': 300,  # Default 5 minutes
+    }
+}
+
+# Fallback to local memory cache if Redis not available
+try:
+    import django_redis
+except ImportError:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'attendance-cache',
+        }
+    }
 
 # Celery Beat Schedule (Periodic Tasks)
 from celery.schedules import crontab

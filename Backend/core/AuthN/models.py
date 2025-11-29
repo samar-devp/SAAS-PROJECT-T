@@ -101,7 +101,7 @@ class UserProfile(models.Model):
     user_name = models.CharField(max_length=255)
     admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'},related_name='under_admin_profile')
     organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name='under_organization_profile_user')
-    profile_photo_url = models.CharField(max_length=500, blank=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True, help_text="User profile photo")
     date_of_birth = models.DateField(null=True, blank=True)
     marital_status = models.CharField(max_length=50, blank=True)
     gender = models.CharField(max_length=20, blank=True)

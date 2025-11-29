@@ -2,33 +2,35 @@ from datetime import datetime, timedelta, date
 from ServiceShift.models import ServiceShift
 
 
-def get_nearest_shift_with_late_minutes(checkin_time, assigned_shifts_queryset):
+def get_nearest_shift_with_late_minutes(checkin_time, assigned_shifts_list):
     """
-    Finds the nearest shift based on check-in time and calculates late minutes (if any).
+    Optimized: Finds the nearest shift based on check-in time and calculates late minutes.
+    Accepts list instead of queryset for better performance.
     Returns: (nearest_shift_object, late_minutes)
     """
-    print(f"==>> employee_assign_shifts: {assigned_shifts_queryset}")
+    if not assigned_shifts_list:
+        return None, 0
 
     nearest_shift = None
-    min_diff = timedelta.max
+    min_diff_seconds = float('inf')
+    checkin_date = checkin_time.date()
 
-    for shift in assigned_shifts_queryset:
-        shift_start = datetime.combine(checkin_time.date(), shift.start_time)
-        diff = abs(shift_start - checkin_time)
+    for shift in assigned_shifts_list:
+        shift_start = datetime.combine(checkin_date, shift.start_time)
+        diff_seconds = abs((shift_start - checkin_time).total_seconds())
 
-        if diff < min_diff:
-            min_diff = diff
+        if diff_seconds < min_diff_seconds:
+            min_diff_seconds = diff_seconds
             nearest_shift = shift
 
     if nearest_shift:
-        shift_start = datetime.combine(checkin_time.date(), nearest_shift.start_time)
+        shift_start = datetime.combine(checkin_date, nearest_shift.start_time)
         if checkin_time > shift_start:
-            late_diff = (checkin_time - shift_start).total_seconds()
-            late_minutes = int(late_diff // 60)
+            late_minutes = int((checkin_time - shift_start).total_seconds() // 60)
         else:
             late_minutes = 0
     else:
-        late_minutes = None
+        late_minutes = 0
 
     return nearest_shift, late_minutes
 
@@ -36,9 +38,9 @@ def get_nearest_shift_with_late_minutes(checkin_time, assigned_shifts_queryset):
 
 def calculate_total_working_minutes(check_in, check_out):
     total_seconds = (check_out - check_in).total_seconds()
-    if total_seconds < 60:
+    if total_seconds < 10:  # Minimum 10 seconds required
         return None  
-    return int(total_seconds // 60)
+    return int(total_seconds // 60)  # Convert to minutes for storage
 
 
 def calculate_early_exit_minutes(check_out, shift_end_time):
@@ -52,6 +54,8 @@ def calculate_early_exit_minutes(check_out, shift_end_time):
 
 
 def calculate_overtime_minutes(total_minutes, expected_hours=8):
+    if total_minutes is None:
+        return 0
     expected_minutes = expected_hours * 60
     extra = total_minutes - expected_minutes
 
@@ -164,6 +168,11 @@ class AttendanceService:
                 "total_working_minutes": r.total_working_minutes,
                 "remarks": r.remarks,
             })
+            
+            # Track last attendance record (by id) for determining last login status
+            if "last_attendance_id" not in d or r.id > d["last_attendance_id"]:
+                d["last_attendance_id"] = r.id
+                d["last_attendance_record"] = r
 
             # First check-in
             if r.check_in_time:
@@ -193,13 +202,24 @@ class AttendanceService:
         final = []
 
         for d in data.values():
-            # Last login status
-            if d["last_check_out_time"]:
-                d["last_login_status"] = "checkout"
-            elif d["first_check_in_time"]:
-                d["last_login_status"] = "checkin"
+            # Last login status - based on last attendance record (ordered by -id)
+            last_record = d.get("last_attendance_record")
+            if last_record:
+                # Check the last record to see if it has checkout or only checkin
+                if last_record.check_out_time:
+                    d["last_login_status"] = "checkout"
+                elif last_record.check_in_time:
+                    d["last_login_status"] = "checkin"
+                else:
+                    d["last_login_status"] = None
             else:
-                d["last_login_status"] = None
+                # Fallback to old logic if no records
+                if d["last_check_out_time"]:
+                    d["last_login_status"] = "checkout"
+                elif d["first_check_in_time"]:
+                    d["last_login_status"] = "checkin"
+                else:
+                    d["last_login_status"] = None
 
             # Time formatting for serializer
             d["check_in"] = (

@@ -57,19 +57,71 @@ const Companies = () => {
     fetchCompanies();
   }, []);
 
+  // Helper function to get initials from name
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // Helper function to get color based on name
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      "bg-primary",
+      "bg-success",
+      "bg-info",
+      "bg-warning",
+      "bg-danger",
+      "bg-secondary",
+    ];
+    if (!name) return colors[0];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  // Avatar component for employee
+  const EmployeeAvatar = ({ record }: { record: any }) => {
+    const [imageError, setImageError] = React.useState(false);
+    const hasImage = record.profile_photo && !imageError;
+    
+    return (
+      <Link to="#" className="avatar avatar-md border rounded-circle position-relative">
+        {hasImage ? (
+          <img
+            src={record.profile_photo}
+            className="img-fluid rounded-circle"
+            alt={record.user_name || "User"}
+            onError={() => setImageError(true)}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <span
+            className={`avatar-initial rounded-circle ${getAvatarColor(
+              record.user_name || ""
+            )} d-flex align-items-center justify-content-center text-white fw-semibold`}
+            style={{
+              width: "100%",
+              height: "100%",
+              fontSize: "14px",
+            }}
+          >
+            {getInitials(record.user_name || "User")}
+          </span>
+        )}
+      </Link>
+    );
+  };
+
   console.log(data); const columns = [
     {
       title: "Employee Name",
       dataIndex: "user_name",
       render: (text: string, record: any) => (
         <div className="d-flex align-items-center file-name-icon">
-          <Link to="#" className="avatar avatar-md border rounded-circle">
-            <ImageWithBasePath
-              src={record.profile_photo_url || "assets/img/company/default.png"}
-              className="img-fluid"
-              alt="img"
-            />
-          </Link>
+          <EmployeeAvatar record={record} />
           <div className="ms-2">
             <h6 className="fw-medium mb-0">
               <Link to="#">{record.user_name}</Link>

@@ -2,8 +2,6 @@ from django.db import models
 from AuthN.models import * 
 from .models import * 
 from ServiceShift.models import *
-# Create your models here.
-
 import uuid
 from django.db import models
 from AuthN.models import *
@@ -26,6 +24,7 @@ class Attendance(models.Model):
     check_in_time = models.DateTimeField(null=True, blank=True)
     check_out_time = models.DateTimeField(null=True, blank=True)
     total_working_minutes = models.IntegerField(null=True, blank=True)  # ✅ Use this instead of DurationField
+    overtime_minutes = models.IntegerField(null=True, blank=True)  # ✅ Use this instead of DurationField
     break_duration_minutes = models.IntegerField(default=0)
     attendance_status = models.CharField(max_length=50)
     check_in_location = models.TextField(null=True, blank=True)
@@ -43,3 +42,12 @@ class Attendance(models.Model):
     attachments = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'WorkLog_attendance'
+        indexes = [
+            models.Index(fields=['user', 'attendance_date', 'check_out_time'], name='idx_user_date_checkout'),
+            models.Index(fields=['user', 'attendance_date'], name='idx_user_date'),
+            models.Index(fields=['attendance_date', 'attendance_status'], name='idx_date_status'),
+        ]
+        ordering = ['-attendance_date', '-check_in_time']
