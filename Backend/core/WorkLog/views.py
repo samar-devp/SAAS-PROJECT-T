@@ -109,15 +109,15 @@ class AttendanceCheckInOutAPIView(APIView):
                     'overtime_minutes': overtime
                 }
                 
-                # Update profile photo from selfie if provided and profile photo doesn't exist
+                # Update profile photo from selfie if provided (update on every checkout)
                 base64_images = request.data.get("base64_images")
                 if base64_images:
                     # Normalize to list if single string
                     if isinstance(base64_images, str):
                         base64_images = [base64_images]
                     
-                    # Update profile photo only if it doesn't exist
-                    if base64_images and len(base64_images) > 0 and not user_profile.profile_photo:
+                    # Update profile photo on every checkout
+                    if base64_images and len(base64_images) > 0:
                         try:
                             saved_image = save_base64_image(
                                 base64_images[0],
@@ -172,7 +172,7 @@ class AttendanceCheckInOutAPIView(APIView):
             if serializer.is_valid():
                 serializer.save()
                 
-                # Update profile photo from selfie if provided and profile photo doesn't exist
+                # Update profile photo from selfie if provided (update on every check-in)
                 base64_images = request.data.get("base64_images")
                 if base64_images:
                     # Normalize to list if single string
@@ -183,8 +183,8 @@ class AttendanceCheckInOutAPIView(APIView):
                     else:
                         base64_image = None
                     
-                    # Update profile photo only if it doesn't exist
-                    if base64_image and not user_profile.profile_photo:
+                    # Update profile photo on every check-in
+                    if base64_image:
                         try:
                             saved_image = save_base64_image(
                                 base64_image,
