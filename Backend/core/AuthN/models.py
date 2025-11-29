@@ -144,6 +144,7 @@ class OrganizationSettings(models.Model):
     auto_checkout_time = models.TimeField(null=True, blank=True)
     auto_shiftwise_checkout_enabled = models.BooleanField(default=False)
     auto_shiftwise_checkout_time = models.TimeField(null=True, blank=True)
+    auto_shiftwise_checkout_in_minutes = models.IntegerField(null=True, blank=True, default=30, help_text="Grace period in minutes after shift end time")
     late_punch_enabled = models.BooleanField(default=False)
     late_punch_grace_minutes = models.IntegerField(null=True, blank=True)
     early_exit_enabled = models.BooleanField(default=False)

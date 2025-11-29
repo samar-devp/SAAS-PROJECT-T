@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { all_routes } from '../../router/all_routes';
-import Table from "../../../core/common/dataTable/index";
 import ImageWithBasePath from '../../../core/common/imageWithBasePath';
 import CommonSelect from '../../../core/common/commonSelect';
-import { DatePicker, TimePicker } from 'antd';
+import { DatePicker, TimePicker, Table as AntTable } from 'antd';
+import type { Dayjs } from 'dayjs';
 import CollapseHeader from '../../../core/common/collapse-header/collapse-header';
 import dayjs from "dayjs";
 import axios from "axios";
+import { img_path } from '../../../environment';
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const AttendanceAdmin = () => {
   const [data, setData] = useState([]);
@@ -15,6 +18,15 @@ const AttendanceAdmin = () => {
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [statusFilter, setStatusFilter] = useState("");
   const [editingAttendance, setEditingAttendance] = useState<any>(null);
+  const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [editEntryModalVisible, setEditEntryModalVisible] = useState(false);
+  const [editEntryForm, setEditEntryForm] = useState<{
+    check_in_time: Dayjs | null;
+    check_out_time: Dayjs | null;
+  }>({
+    check_in_time: null,
+    check_out_time: null,
+  });
   const [summary, setSummary] = useState({
     present: 0,
     late_login: 0,
@@ -46,19 +58,28 @@ const AttendanceAdmin = () => {
       const jsonData = response.data;
 
 
-      if (jsonData && jsonData.results) {
-        const mappedData = jsonData.results.map((item: any) => ({
+
+      if (jsonData && jsonData.data && jsonData.data.length > 0) {
+        console.log(jsonData.data);
+        const mappedData = jsonData.data.map((item: any) => ({
           Employee: item.employee_name,
           Role: 'Employee',
-          Image: 'avatar-02.jpg',
+          Image: item.employee_image || 'avatar-02.jpg',
           Status: item.attendance_status.charAt(0).toUpperCase() + item.attendance_status.slice(1),
           CheckIn: item.check_in ? new Date(item.check_in).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-',
           CheckOut: item.check_out ? new Date(item.check_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-',
           Break: item.break_duration,
           Late: item.late_minutes_display,
           ProductionHours: item.production_hours,
+          ShiftName: item.shift_name,
+          employee_id: item.employee_id,
+          user_id: item.user_id,  // Add user_id UUID for edit API
+          multiple_entries: item.multiple_entries || [],
         }));
         setData(mappedData);
+    } else {
+        // Clear data if empty
+        setData([]);
       }
 
       if (jsonData && jsonData.summary) {
@@ -75,15 +96,76 @@ const AttendanceAdmin = () => {
     fetchAttendanceData();
   }, [fetchAttendanceData, selectedDate, statusFilter]);
 
+  // Helper function to get user initials
+  const getUserInitials = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // Helper function to get avatar color based on name
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      'bg-primary',
+      'bg-success',
+      'bg-info',
+      'bg-warning',
+      'bg-danger',
+      'bg-secondary',
+    ];
+    if (!name) return colors[0];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  // Component for user avatar with fallback
+  const UserAvatar = ({ image, name }: { image: string; name: string }) => {
+    const [imageError, setImageError] = useState(false);
+    const hasValidImage = image && image.trim() !== '' && image !== 'avatar-02.jpg' && !imageError;
+    const initials = getUserInitials(name);
+    const avatarColor = getAvatarColor(name);
+
+    return (
+      <Link to="#" className="avatar avatar-md border avatar-rounded" style={{ position: 'relative', overflow: 'hidden' }}>
+        {hasValidImage ? (
+          <img
+            src={`${img_path}assets/img/users/${image}`}
+            className="img-fluid"
+            alt={name}
+            onError={() => setImageError(true)}
+            style={{ display: imageError ? 'none' : 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : null}
+        <span 
+          className={`${avatarColor} text-fixed-white d-flex align-items-center justify-content-center`} 
+          style={{ 
+            position: hasValidImage && !imageError ? 'absolute' : 'relative',
+            top: 0,
+            left: 0,
+            width: '100%', 
+            height: '100%', 
+            fontSize: '0.8rem', 
+            fontWeight: '600',
+            borderRadius: '50%',
+            display: hasValidImage && !imageError ? 'none' : 'flex'
+          }}
+        >
+          {initials}
+        </span>
+      </Link>
+    );
+  };
+
   const columns = [
     {
       title: "Employee",
       dataIndex: "Employee",
       render: (text: String, record: any) => (
         <div className="d-flex align-items-center file-name-icon">
-          <Link to="#" className="avatar avatar-md border avatar-rounded">
-            <ImageWithBasePath src={`assets/img/users/${record.Image}`} className="img-fluid" alt="img" />
-          </Link>
+          <UserAvatar image={record.Image} name={record.Employee} />
           <div className="ms-2">
             <h6 className="fw-medium">
               <Link to="#">{record.Employee}</Link>
@@ -143,6 +225,11 @@ const AttendanceAdmin = () => {
       sorter: (a: any, b: any) => a.ProductionHours.length - b.ProductionHours.length,
     },
     {
+      title: "Assign Shift",
+      dataIndex: "ShiftName",
+      sorter: (a: any, b: any) => a.shift_name.length - b.shift_name.length,
+    },
+    {
       title: "",
       dataIndex: "actions",
       render: () => (
@@ -175,6 +262,160 @@ const AttendanceAdmin = () => {
     return modalElement ? modalElement : document.body; // Fallback to document.body if modalElement is null
   };
 
+  const handleEditEntry = (entry: any, userId: string) => {
+    setEditingEntry({ ...entry, user_id: userId });
+    setEditEntryForm({
+      check_in_time: entry.check_in_time ? dayjs(entry.check_in_time) : null,
+      check_out_time: entry.check_out_time ? dayjs(entry.check_out_time) : null,
+    });
+    setEditEntryModalVisible(true);
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const admin_id = sessionStorage.getItem("user_id");
+      if (!admin_id) {
+        toast.error("Admin ID not found in session storage.");
+        return;
+      }
+
+      const dateParam = selectedDate.format("YYYY-MM-DD");
+      const token = sessionStorage.getItem("access_token");
+      
+      const url = `http://127.0.0.1:8000/api/employee-attendance/${admin_id}?date=${dateParam}&export=true`;
+      
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: 'blob', // Important for file download
+      });
+
+      // Create a blob from the response
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+      // Create a temporary URL and trigger download
+      const url_blob = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url_blob;
+      link.setAttribute('download', `attendance_${dateParam}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url_blob);
+
+      toast.success("Excel report downloaded successfully!");
+    } catch (error: any) {
+      console.error("Error exporting attendance:", error);
+      const errorMessage = error.response?.data?.message || "Failed to export attendance. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleSaveEntry = async () => {
+    if (!editingEntry) return;
+
+    // Validation: Check if check_out_time is before check_in_time
+    if (editEntryForm.check_in_time && editEntryForm.check_out_time) {
+      if (editEntryForm.check_out_time.isBefore(editEntryForm.check_in_time)) {
+        toast.error("Check out time cannot be before check in time!");
+        return;
+      }
+    }
+
+    try {
+      const token = sessionStorage.getItem("access_token");
+      const payload: any = {};
+      
+      if (editEntryForm.check_in_time) {
+        payload.check_in_time = editEntryForm.check_in_time.format("YYYY-MM-DD HH:mm:ss");
+      }
+      if (editEntryForm.check_out_time) {
+        payload.check_out_time = editEntryForm.check_out_time.format("YYYY-MM-DD HH:mm:ss");
+      }
+
+      const response = await axios.put(
+        `http://127.0.0.1:8000/api/edit-attendance/${editingEntry.user_id}/${editingEntry.id}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.status === 200) {
+        toast.success("Attendance entry updated successfully!");
+        setEditEntryModalVisible(false);
+        setEditingEntry(null);
+        setEditEntryForm({ check_in_time: null, check_out_time: null });
+        // Refresh the data
+        fetchAttendanceData();
+      }
+    } catch (error: any) {
+      console.error("Error updating attendance entry:", error);
+      const errorMessage = error.response?.data?.message || "Failed to update attendance entry. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  const expandedRowRender = (record: any) => {
+    const entryColumns = [
+      { 
+        title: 'Check In Time', 
+        dataIndex: 'check_in_time', 
+        key: 'check_in_time', 
+        render: (text:string) => text ? new Date(text).toLocaleString() : '-' 
+      },
+      { 
+        title: 'Check Out Time', 
+        dataIndex: 'check_out_time', 
+        key: 'check_out_time', 
+        render: (text:string) => text ? new Date(text).toLocaleString() : '-' 
+      },
+      { 
+        title: 'Working Minutes', 
+        dataIndex: 'total_working_minutes', 
+        key: 'total_working_minutes',
+        render: (text: number) => text ? `${text} min` : '-'
+      },
+      { 
+        title: 'Remarks', 
+        dataIndex: 'remarks', 
+        key: 'remarks', 
+        render: (text:string) => text || '-' 
+      },
+      {
+        title: 'Action',
+        key: 'action',
+        render: (_: any, entry: any) => (
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={() => handleEditEntry(entry, record.user_id)}
+          >
+            <i className="ti ti-edit me-1" />
+            Edit
+          </button>
+        ),
+      },
+    ];
+
+    if (!record.multiple_entries || record.multiple_entries.length === 0) {
+      return <p style={{ padding: '16px' }}>No individual entries found for this employee on this day.</p>;
+    }
+
+    return (
+      <AntTable
+        columns={entryColumns}
+        dataSource={record.multiple_entries}
+        pagination={false}
+        rowKey="id"
+      />
+    );
+  };
+
   return (
     <>
       {/* Page Wrapper */}
@@ -199,64 +440,15 @@ const AttendanceAdmin = () => {
               </nav>
             </div>
             <div className="d-flex my-xl-auto right-content align-items-center flex-wrap ">
-              <div className="me-2 mb-2">
-                <div className="d-flex align-items-center border bg-white rounded p-1 me-2 icon-list">
-                  <Link
-                    to={all_routes.attendanceemployee}
-                    className="btn btn-icon btn-sm  me-1"
-                  >
-                    <i className="ti ti-brand-days-counter" />
-                  </Link>
-                  <Link
-                    to={all_routes.attendanceadmin}
-                    className="btn btn-icon btn-sm active bg-primary text-white"
-                  >
-                    <i className="ti ti-calendar-event" />
-                  </Link>
-                </div>
-              </div>
-              <div className="me-2 mb-2">
-                <div className="dropdown">
-                  <Link
-                    to="#"
-                    className="dropdown-toggle btn btn-white d-inline-flex align-items-center"
-                    data-bs-toggle="dropdown"
-                  >
-                    <i className="ti ti-file-export me-1" />
-                    Export
-                  </Link>
-                  <ul className="dropdown-menu  dropdown-menu-end p-3">
-                    <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
-                        <i className="ti ti-file-type-pdf me-1" />
-                        Export as PDF
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="#"
-                        className="dropdown-item rounded-1"
-                      >
-                        <i className="ti ti-file-type-xls me-1" />
-                        Export as Excel{" "}
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-              </div>
               <div className="mb-2">
-                <Link
-                  to="#"
-                  className="btn btn-primary d-flex align-items-center"
-                  data-bs-target="#attendance_report"
-                  data-bs-toggle="modal" data-inert={true}
+                <button
+                  type="button"
+                  onClick={handleExportExcel}
+                  className="btn btn-success d-flex align-items-center me-2"
                 >
-                  <i className="ti ti-file-analytics me-2" />
-                  Report
-                </Link>
+                  <i className="ti ti-file-type-xls me-2" />
+                  Export Excel
+                </button>
               </div>
               <div className="ms-2 head-icons">
                 <CollapseHeader />
@@ -269,13 +461,12 @@ const AttendanceAdmin = () => {
               <div className="row align-items-center mb-4">
                 <div className="col-md-5">
                   <div className="mb-3 mb-md-0">
-                    <h4 className="mb-1">Attendance Details Today</h4>
-                    <p>Data from the 800+ total no of employees</p>
+                    <h4 className="mb-1">Attendance Details</h4>
                   </div>
                 </div>
                 <div className="col-md-7">
                   <div className="d-flex align-items-center justify-content-md-end">
-                    <h6>Total Absenties today</h6>
+                    <h6>Total Employees {data.length}</h6>
                     <div className="avatar-list-stacked avatar-group-sm ms-4">
                       <span className="avatar avatar-rounded">
                         <ImageWithBasePath
@@ -329,10 +520,6 @@ const AttendanceAdmin = () => {
                       <span className="fw-medium mb-1 d-block">Present</span>
                       <div className="d-flex align-items-center justify-content-between">
                         <h5>{summary.present}</h5>
-                        <span className="badge badge-success d-inline-flex align-items-center">
-                          <i className="ti ti-arrow-wave-right-down me-1" />
-                          +1%
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -341,10 +528,6 @@ const AttendanceAdmin = () => {
                       <span className="fw-medium mb-1 d-block">Late Login</span>
                       <div className="d-flex align-items-center justify-content-between">
                         <h5>{summary.late_login}</h5>
-                        <span className="badge badge-danger d-inline-flex align-items-center">
-                          <i className="ti ti-arrow-wave-right-down me-1" />
-                          -1%
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -353,10 +536,6 @@ const AttendanceAdmin = () => {
                       <span className="fw-medium mb-1 d-block">Absent</span>
                       <div className="d-flex align-items-center justify-content-between">
                         <h5>{summary.absent}</h5>
-                        <span className="badge badge-danger d-inline-flex align-items-center">
-                          <i className="ti ti-arrow-wave-right-down me-1" />
-                          -19%
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -405,7 +584,12 @@ const AttendanceAdmin = () => {
               {loading ? (
                 <p className="p-3">Loading attendance...</p>
               ) : (
-                <Table dataSource={data} columns={columns} Selection={true} />
+                <AntTable 
+                  dataSource={data} 
+                  columns={columns} 
+                  expandable={{ expandedRowRender }}
+                  rowKey={(record, index) => `${record.Employee}-${index}`}
+                />
               )}
             </div>
           </div>
@@ -561,8 +745,8 @@ const AttendanceAdmin = () => {
                   <div className="row align-items-center">
                     <div className="col-lg-4">
                       <div className="d-flex align-items-center mb-3">
-                        <span className="avatar avatar-sm avatar-rounded flex-shrink-0 me-2">
-                          <ImageWithBasePath src="assets/img/profiles/avatar-02.jpg" alt="Img" />
+                        <span className="avatar avatar-sm avatar-rounded bg-primary text-fixed-white flex-shrink-0 me-2 d-flex align-items-center justify-content-center">
+                          <i className="ti ti-user fs-16"></i>
                         </span>
                         <div>
                           <h6 className="fw-medium">Anthony Lewis</h6>
@@ -719,6 +903,115 @@ const AttendanceAdmin = () => {
         </div>
       </div>
       {/* /Attendance Report */}
+      {/* Edit Entry Modal */}
+      <div className={`modal fade ${editEntryModalVisible ? 'show' : ''}`} id="edit_entry_modal" style={{ display: editEntryModalVisible ? 'block' : 'none' }}>
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header">
+              <div className="d-flex align-items-center">
+                <span className="avatar avatar-sm avatar-rounded bg-primary text-fixed-white me-2 d-flex align-items-center justify-content-center">
+                  <i className="ti ti-user fs-16"></i>
+                </span>
+                <h4 className="modal-title mb-0">Edit Entry</h4>
+              </div>
+              <button
+                type="button"
+                className="btn-close custom-btn-close"
+                onClick={() => {
+                  setEditEntryModalVisible(false);
+                  setEditingEntry(null);
+                  setEditEntryForm({ check_in_time: null, check_out_time: null });
+                }}
+                aria-label="Close"
+              >
+                <i className="ti ti-x" />
+              </button>
+            </div>
+            <div className="modal-body pb-0">
+              <div className="row">
+                <div className="col-md-6">
+                  <div className="mb-3">
+                    <label className="form-label">Check In Time</label>
+                    <div className="input-icon input-icon-new position-relative w-100">
+                      <DatePicker
+                        showTime={{ format: 'HH:mm:ss' }}
+                        value={editEntryForm.check_in_time}
+                        onChange={(date) => setEditEntryForm({ ...editEntryForm, check_in_time: date })}
+                        format="YYYY-MM-DD HH:mm:ss"
+                        className="form-control"
+                        placeholder="Select Check In Time"
+                        getPopupContainer={getModalContainer2}
+                        style={{ width: '100%' }}
+                      />
+                      <span className="input-icon-addon">
+                        <i className="ti ti-calendar" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="mb-3">
+                    <label className="form-label">Check Out Time</label>
+                    <div className="input-icon input-icon-new position-relative w-100">
+                      <DatePicker
+                        showTime={{ format: 'HH:mm:ss' }}
+                        value={editEntryForm.check_out_time}
+                        onChange={(date) => setEditEntryForm({ ...editEntryForm, check_out_time: date })}
+                        format="YYYY-MM-DD HH:mm:ss"
+                        className="form-control"
+                        placeholder="Select Check Out Time"
+                        getPopupContainer={getModalContainer2}
+                        style={{ width: '100%' }}
+                      />
+                      <span className="input-icon-addon">
+                        <i className="ti ti-calendar" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-light me-2"
+                onClick={() => {
+                  setEditEntryModalVisible(false);
+                  setEditingEntry(null);
+                  setEditEntryForm({ check_in_time: null, check_out_time: null });
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={handleSaveEntry}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {editEntryModalVisible && <div className="modal-backdrop fade show" onClick={() => {
+        setEditEntryModalVisible(false);
+        setEditingEntry(null);
+        setEditEntryForm({ check_in_time: null, check_out_time: null });
+      }}></div>}
+      {/* /Edit Entry Modal */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </>
 
 

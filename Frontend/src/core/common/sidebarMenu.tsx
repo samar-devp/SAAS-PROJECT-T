@@ -354,13 +354,13 @@ export const SidebarDataTest = [
               },
               {
                 label: 'Work Locations',
-                link: routes.underConstruction,
+                link: routes.workLocations,
                 base: 'locations',
               },
               {
-                label: 'Leave Policies',
+                label: 'Leave Types',
                 link: routes.leaveTypes,
-                base: 'leave-policies',
+                base: 'leave-types',
               },
             ],
           },

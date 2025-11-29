@@ -12,6 +12,8 @@ import Companies from "../super-admin/companies";
 import UnderConstruction from "../pages/underConstruction";
 import ServiceShifts from "../hrm/shifts/fetchModal";
 import LeaveTypes from "../hrm/leave/fetchModal";
+import LeavePolicies from "../hrm/leave-policies/fetchModal";
+import Locations from "../hrm/locations/fetchModal";
 
 const routes = all_routes;
 
@@ -62,6 +64,14 @@ export const publicRoutes = [
   {
     path: routes.leaveTypes,
     element: <LeaveTypes />,
+  },
+  {
+    path: routes.leavePolicies,
+    element: <LeavePolicies />,
+  },
+  {
+    path: routes.workLocations,
+    element: <Locations />,
   },
   {
   path: routes.attendanceadmin,

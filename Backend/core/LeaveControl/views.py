@@ -18,7 +18,6 @@ class LeaveTypeAPIView(APIView):
 
     def post(self, request, admin_id, pk=None):
         admin = get_object_or_404(AdminProfile, user_id=admin_id)
-        print(f"==>> admin: {admin}")
         data = request.data.copy()
         data['admin'] = admin.user_id
         data['organization'] = admin.organization.id
@@ -117,10 +116,18 @@ class LeaveApplicationAPIView(APIView):
         if pk:
             leave = get_object_or_404(LeaveApplication, user__id=user_id, id=pk)
             serializer = LeaveApplicationSerializer(leave)
-            return Response(serializer.data)
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Leave application fetched successfully",
+                "data": serializer.data
+            })
         leaves = LeaveApplication.objects.filter(user__id=user_id)
         serializer = LeaveApplicationSerializer(leaves, many=True)
-        return Response(serializer.data)
+        return Response({
+            "status": status.HTTP_200_OK,
+            "message": "Leave applications fetched successfully",
+            "data": serializer.data
+        })
 
     def post(self, request, user_id, pk=None):
         user = get_object_or_404(UserProfile, user_id=user_id)

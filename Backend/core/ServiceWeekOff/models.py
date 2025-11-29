@@ -10,10 +10,14 @@ class WeekOffPolicy(models.Model):
     week_off_type = models.CharField(max_length=100, help_text="e.g. Fixed, Rotational, Alternate", default="Default")
     
     # Comma-separated or JSON list of days e.g. ["Monday", "Friday"]
-    week_days = models.JSONField(help_text="List of weekdays off", default=["Sunday"])
+    def default_week_days():
+        return ["Sunday"]
+    week_days = models.JSONField(help_text="List of weekdays off", default=default_week_days)
     
     # Week off cycle like [1, 2, 3, 4, 5] for repeating weeks in a month
-    week_off_cycle = models.JSONField(default=[1,2,3,4,5])
+    def default_week_off_cycle():
+        return [1, 2, 3, 4, 5]
+    week_off_cycle = models.JSONField(default=default_week_off_cycle)
 
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)

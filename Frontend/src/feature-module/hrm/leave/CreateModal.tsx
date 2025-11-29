@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 type LeaveTypeModalProps = {
   onLeaveTypeAdded?: (newLeaveType: any) => void;
@@ -94,28 +95,48 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({
   const resetAddForm = () => setAddFormData(initialFormState);
 
   const handleCreate = async () => {
+    if (!addFormData.name.trim()) {
+      toast.error("Leave type name is required");
+      return;
+    }
+
+    if (!addFormData.code.trim()) {
+      toast.error("Leave type code is required");
+      return;
+    }
+
     try {
       const token = sessionStorage.getItem("access_token");
       const admin_id = sessionStorage.getItem("user_id");
+      
       if (!admin_id) {
-        console.warn("Admin id missing");
+        toast.error("Admin ID not found. Please login again.");
         return;
       }
 
       const response = await axios.post(
         `http://127.0.0.1:8000/api/leave-types/${admin_id}`,
         buildPayload(addFormData),
-        token
-          ? {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          : undefined
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
+      toast.success("Leave type created successfully");
       onLeaveTypeAdded?.(response.data);
       resetAddForm();
-    } catch (error) {
+      
+      // Close modal
+      const modalElement = document.getElementById("add_leave_type");
+      if (modalElement) {
+        const modalInstance = (window as any).bootstrap?.Modal?.getInstance(modalElement);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      }
+    } catch (error: any) {
       console.error("Error adding leave type:", error);
+      toast.error(error.response?.data?.message || error.response?.data?.error || "Failed to create leave type");
     }
   };
 
@@ -123,11 +144,21 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({
     editingLeaveType?.id ?? editingLeaveType?.leave_type_id ?? editingLeaveType?.leaveTypeId ?? null;
 
   const handleUpdate = async () => {
+    if (!editFormData.name.trim()) {
+      toast.error("Leave type name is required");
+      return;
+    }
+
+    if (!editFormData.code.trim()) {
+      toast.error("Leave type code is required");
+      return;
+    }
+
     const leaveTypeId = getEditingLeaveTypeId();
     const admin_id = sessionStorage.getItem("user_id");
 
     if (!leaveTypeId || !admin_id) {
-      console.warn("Missing identifiers for update");
+      toast.error("Missing identifiers for update");
       return;
     }
 
@@ -137,17 +168,26 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({
       const response = await axios.put(
         `http://127.0.0.1:8000/api/leave-types/${admin_id}/${leaveTypeId}`,
         buildPayload(editFormData),
-        token
-          ? {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          : undefined
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
+      toast.success("Leave type updated successfully");
       onLeaveTypeUpdated?.(response.data);
       onEditClose?.();
-    } catch (error) {
+      
+      // Close modal
+      const modalElement = document.getElementById("edit_leave_type");
+      if (modalElement) {
+        const modalInstance = (window as any).bootstrap?.Modal?.getInstance(modalElement);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      }
+    } catch (error: any) {
       console.error("Error updating leave type:", error);
+      toast.error(error.response?.data?.message || error.response?.data?.error || "Failed to update leave type");
     }
   };
 

@@ -1,6 +1,7 @@
 // src/core/modals/DeleteModal.tsx
-import React from "react";
+import React, { useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 interface DeleteModalProps {
   admin_id: string | null;
@@ -13,31 +14,49 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   leaveTypeId,
   onDeleted,
 }) => {
+  const [loading, setLoading] = useState(false);
+
   const handleDelete = async () => {
     if (leaveTypeId == null || !admin_id) {
-      console.warn("Delete requested without required identifiers");
+      toast.error("Missing required identifiers");
       return;
     }
+    
+    setLoading(true);
     try {
-      const token =
-        typeof window !== "undefined"
-          ? sessionStorage.getItem("access_token")
-          : null;
+      const token = sessionStorage.getItem("access_token");
+      
+      if (!token) {
+        toast.error("Authentication token not found");
+        setLoading(false);
+        return;
+      }
+
       await axios.delete(
         `http://127.0.0.1:8000/api/leave-types/${admin_id}/${leaveTypeId}`,
-        token
-          ? {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          : undefined
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      console.log("✅ Leave type deleted successfully");
+      
+      toast.success("Leave type deleted successfully");
       onDeleted?.();
-    } catch (error) {
-      console.error("❌ Error deleting leave type:", error);
-      alert("Failed to delete the leave type");
+      
+      // Close modal
+      const modalElement = document.getElementById("delete_modal");
+      if (modalElement) {
+        const modalInstance = (window as any).bootstrap?.Modal?.getInstance(modalElement);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      }
+    } catch (error: any) {
+      console.error("Error deleting leave type:", error);
+      toast.error(error.response?.data?.message || error.response?.data?.error || "Failed to delete leave type");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -72,9 +91,16 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                 className="btn btn-danger"
                 data-bs-dismiss="modal"
                 onClick={handleDelete}
-                disabled={leaveTypeId === null || !admin_id}
+                disabled={leaveTypeId === null || !admin_id || loading}
               >
-                Yes, Delete
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, Delete"
+                )}
               </button>
             </div>
           </div>

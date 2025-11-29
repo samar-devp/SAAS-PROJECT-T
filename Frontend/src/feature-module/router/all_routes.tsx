@@ -7,6 +7,9 @@ export const all_routes = {
   serviceShifts: "/service-shifts",
   editAttendance: "/edit-attendance/:employee_id/:id",
   leaveTypes: "/leave-types",
+  leavePolicies: "/leave-policies",
+  salaryStructure: "/salary-structure",
+  workLocations: "/work-locations",
 
   //Application routes
   chat: "/application/chat",

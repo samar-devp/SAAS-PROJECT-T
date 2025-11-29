@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import CollapseHeader from "../../../core/common/collapse-header/collapse-header";
 import { all_routes } from "../../router/all_routes";
 import Table from "../../../core/common/dataTable/index";
@@ -30,6 +32,12 @@ const LeaveTypes = () => {
       const token = sessionStorage.getItem("access_token");
       const admin_id = sessionStorage.getItem("user_id");
 
+      if (!admin_id) {
+        toast.error("Admin ID not found. Please login again.");
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.get(
         `http://127.0.0.1:8000/api/leave-types/${admin_id}`,
         {
@@ -40,8 +48,10 @@ const LeaveTypes = () => {
       );
 
       setData(response.data ?? []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching leave types:", error);
+      toast.error(error.response?.data?.message || "Failed to fetch leave types");
+      setData([]);
     } finally {
       setLoading(false);
     }
@@ -112,7 +122,7 @@ const LeaveTypes = () => {
             data-bs-target="#edit_leave_type"
             onClick={() => setEditingLeaveType(leaveType)}
           >
-            <i className="ti ti-edit" />
+            <i className="ti ti-pencil fs-5" />
           </Link>
           <Link
             to="#"
@@ -120,7 +130,7 @@ const LeaveTypes = () => {
             data-bs-target="#delete_modal"
             onClick={() => setLeaveTypeIdToDelete(normalizeLeaveTypeId(getLeaveTypeKey(leaveType)))}
           >
-            <i className="ti ti-trash" />
+            <i className="ti ti-trash fs-5 text-danger" />
           </Link>
         </div>
       ),
@@ -142,7 +152,7 @@ const LeaveTypes = () => {
                       <i className="ti ti-smart-home" />
                     </Link>
                   </li>
-                  <li className="breadcrumb-item">Employee</li>
+                  <li className="breadcrumb-item">Settings</li>
                   <li className="breadcrumb-item active" aria-current="page">
                     Leave Types
                   </li>
@@ -228,6 +238,7 @@ const LeaveTypes = () => {
           fetchLeaveTypes();
         }}
       />
+      <ToastContainer position="top-right" autoClose={3000} />
     </>
   );
 };

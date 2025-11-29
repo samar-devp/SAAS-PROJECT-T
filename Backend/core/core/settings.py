@@ -60,7 +60,17 @@ LOCAL_APPS = [
     'PayrollSystem',
     'TaskControl',
     'LocationControl',
-    'LeaveControl'
+    'LeaveControl',
+    'VisitControl',
+    'AssetManagement',
+    'NotesManagement',
+    'BroadcastManagement',
+    'NotificationControl',
+    'HelpdeskManagement',
+    'PerformanceManagement',
+    'OnboardingManagement',
+    'HRAnalytics',
+    'OrganizationManagement',
     ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -167,4 +177,102 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Redis as message broker
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Redis as result backend
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = False
+
+# Celery Beat Schedule (Periodic Tasks)
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # Auto-checkout tasks - Run every 5 minutes
+    'general-auto-checkout-every-5-minutes': {
+        'task': 'general_auto_checkout_task',
+        'schedule': crontab(minute='*/5'),  # Every 5 minutes
+    },
+    'shiftwise-auto-checkout-every-5-minutes': {
+        'task': 'shiftwise_auto_checkout_task',
+        'schedule': crontab(minute='*/5'),  # Every 5 minutes
+    },
+    
+    # Notification tasks - Run every minute
+    'send-scheduled-notifications-every-minute': {
+        'task': 'send_scheduled_notifications_task',
+        'schedule': crontab(minute='*'),  # Every minute
+    },
+    'send-broadcast-notifications-every-minute': {
+        'task': 'send_broadcast_notifications_task',
+        'schedule': crontab(minute='*'),  # Every minute
+    },
+    
+    # Monthly tasks - Run on 1st of every month at 2 AM
+    'process-monthly-payroll': {
+        'task': 'process_monthly_payroll_task',
+        'schedule': crontab(hour=2, minute=0, day_of_month=1),  # 1st of every month at 2 AM
+    },
+    'process-leave-accrual-monthly': {
+        'task': 'process_leave_accrual_task',
+        'schedule': crontab(hour=3, minute=0, day_of_month=1),  # 1st of every month at 3 AM
+    },
+    'update-asset-depreciation-monthly': {
+        'task': 'update_asset_depreciation_task',
+        'schedule': crontab(hour=4, minute=0, day_of_month=1),  # 1st of every month at 4 AM
+    },
+    
+    # Weekly tasks - Run every Monday at 9 AM
+    'process-expense-reimbursements-weekly': {
+        'task': 'process_expense_reimbursements_task',
+        'schedule': crontab(hour=9, minute=0, day_of_week=1),  # Every Monday at 9 AM
+    },
+    
+    # Daily tasks - Run at midnight
+    'attendance-auto-close-daily': {
+        'task': 'attendance_auto_close_task',
+        'schedule': crontab(hour=0, minute=0),  # Every day at midnight
+    },
+    'late-early-detection-daily': {
+        'task': 'late_early_detection_task',
+        'schedule': crontab(hour=1, minute=0),  # Every day at 1 AM
+    },
+    'birthday-anniversary-alerts-daily': {
+        'task': 'birthday_anniversary_alerts_task',
+        'schedule': crontab(hour=8, minute=0),  # Every day at 8 AM
+    },
+    'data-backup-daily': {
+        'task': 'data_backup_task',
+        'schedule': crontab(hour=2, minute=0),  # Every day at 2 AM
+    },
+    
+    # Monthly tasks - Additional
+    'leave-carry-forward-yearly': {
+        'task': 'leave_carry_forward_task',
+        'schedule': crontab(hour=5, minute=0, day_of_month=1),  # 1st of every month at 5 AM
+    },
+    
+    # Organization tasks - Run daily
+    'check-organization-expiry-daily': {
+        'task': 'check_organization_expiry_task',
+        'schedule': crontab(hour=6, minute=0),  # Every day at 6 AM
+    },
+    'send-renewal-reminders-daily': {
+        'task': 'send_renewal_reminders_task',
+        'schedule': crontab(hour=9, minute=0),  # Every day at 9 AM
+    },
+    
+    # Security tasks - Run daily
+    'token-cleanup-daily': {
+        'task': 'token_cleanup_task',
+        'schedule': crontab(hour=3, minute=0),  # Every day at 3 AM
+    },
+    'suspicious-login-detection-hourly': {
+        'task': 'suspicious_login_detection_task',
+        'schedule': crontab(minute=0),  # Every hour
+    },
+}
 
