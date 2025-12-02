@@ -84,8 +84,7 @@ def shiftwise_auto_checkout_task():
     
     try:
         shiftwise_settings = OrganizationSettings.objects.filter(
-            auto_shiftwise_checkout_enabled=True,
-            auto_shiftwise_checkout_time__isnull=False
+            auto_shiftwise_checkout_enabled=True
         )
         
         for setting in shiftwise_settings:

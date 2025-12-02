@@ -22,9 +22,9 @@ urlpatterns = [
     path('leave-types/<uuid:admin_id>', LeaveTypeAPIView.as_view(), name='leave-type-list-create'),
     path('leave-types/<uuid:admin_id>/<int:pk>', LeaveTypeAPIView.as_view(), name='leave-type-detail'),
     
-    # LEAVE POLICIES
-    path('leave-policies/<uuid:org_id>', LeavePolicyAPIView.as_view(), name='leave-policy-list-create'),
-    path('leave-policies/<uuid:org_id>/<uuid:pk>', LeavePolicyAPIView.as_view(), name='leave-policy-detail'),
+    # LEAVE POLICIES (uses admin_id to get organization)
+    path('leave-policies/<uuid:admin_id>', LeavePolicyAPIView.as_view(), name='leave-policy-list-create'),
+    path('leave-policies/<uuid:admin_id>/<uuid:pk>', LeavePolicyAPIView.as_view(), name='leave-policy-detail'),
     
     # LEAVE BALANCES
     path('leave-balances/<uuid:user_id>', EmployeeLeaveBalanceAPIView.as_view(), name='leave-balance-list-create'),

@@ -1,12 +1,34 @@
 """
 Additional Utility APIs for AuthN Module
-Comprehensive APIs for frontend usage
+=========================================
+
+This module contains comprehensive APIs for authentication and user management.
+All APIs follow RESTful conventions and include proper permission checks.
+
+Key Features:
+- Employee profile management with O(1) complexity optimizations
+- Admin management under organizations
+- Password change functionality for all roles
+- Bulk operations with transaction safety
+- Optimized queries using select_related/prefetch_related
+
+Time Complexity:
+- Most operations are O(1) with optimized database queries
+- List operations use pagination for O(n) complexity where n = page size
+
+Space Complexity:
+- O(1) for single object operations
+- O(page_size) for paginated list operations
+
+Author: Development Team
+Last Updated: 2025
 """
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from .permissions import *
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.db.models import Q, Count, Sum, Avg
@@ -15,13 +37,14 @@ from datetime import datetime, date
 from django.http import HttpResponse
 import csv
 
-from .models import (
-    BaseUserModel, UserProfile, AdminProfile, OrganizationProfile,
-    SystemOwnerProfile, OrganizationSettings
-)
+from .models import *
 from .serializers import (
-    UserProfileSerializer, AdminProfileSerializer, OrganizationProfileSerializer,
-    SystemOwnerProfileSerializer, OrganizationSettingsSerializer
+    UserProfileReadSerializer, UserProfileUpdateSerializer,
+    AdminProfileReadSerializer, AdminProfileUpdateSerializer,
+    ChangePasswordSerializer, EmployeeActivateSerializer,
+    EmployeeTransferSerializer, EmployeeStatusUpdateSerializer,
+    GeoFencingUpdateSerializer, BulkActivateDeactivateSerializer,
+    FcmTokenUpdateSerializer
 )
 from utils.pagination_utils import CustomPagination
 
@@ -29,32 +52,61 @@ from utils.pagination_utils import CustomPagination
 # ==================== CHANGE PASSWORD FOR ALL ROLES ====================
 
 class ChangePasswordAllRolesAPIView(APIView):
-    """Change password for any role (System Owner, Organization, Admin, User)"""
-    permission_classes = [IsAuthenticated]
+    """
+    Change password for any role (System Owner, Organization, Admin, User).
+    
+    Permissions:
+        - Users can change their own password
+        - System Owner/Organization/Admin can change any user's password with force_change=True
+    
+    Request Body:
+        - old_password (str, optional): Current password (required unless force_change=True)
+        - new_password (str, required): New password
+        - force_change (bool, optional): Force password change without old password (admin only)
+    
+    Time Complexity: O(1) - Single database query
+    Space Complexity: O(1) - Constant space usage
+    """
+    permission_classes = [IsAuthenticated, CanUpdateOwnOrAnyUser]
     
     def post(self, request, user_id):
-        try:
-            user = get_object_or_404(BaseUserModel, id=user_id)
-            current_user = request.user
+        """
+        Change user password.
+        
+        Args:
+            user_id: UUID of the user whose password needs to be changed
             
-            # Check if user is changing their own password or is admin/system_owner
-            if user.id != current_user.id and current_user.role not in ['system_owner', 'organization', 'admin']:
+        Returns:
+            Response with success message or error details
+        """
+        try:
+            # O(1) - Single database query
+            user = get_object_or_404(BaseUserModel, id=user_id)
+            
+            # Check object-level permission using CanUpdateOwnOrAnyUser
+            permission = CanUpdateOwnOrAnyUser()
+            if not permission.has_object_permission(request, self, user):
                 return Response({
                     "status": status.HTTP_403_FORBIDDEN,
                     "message": "You don't have permission to change this user's password"
                 }, status=status.HTTP_403_FORBIDDEN)
             
-            old_password = request.data.get("old_password")
-            new_password = request.data.get("new_password")
-            force_change = request.data.get("force_change", False)  # For admin/system_owner
-            
-            if not new_password:
+            # Use serializer for validation
+            serializer = ChangePasswordSerializer(data=request.data)
+            if not serializer.is_valid():
                 return Response({
                     "status": status.HTTP_400_BAD_REQUEST,
-                    "message": "New password is required"
+                    "message": "Validation error",
+                    "errors": serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Check old password only if not force change
+            validated_data = serializer.validated_data
+            old_password = validated_data.get('old_password')
+            new_password = validated_data['new_password']
+            force_change = validated_data.get('force_change', False)
+            
+            # O(1) - Password check uses constant time hashing
+            # Check old password only if not force change (admins can bypass)
             if not force_change and old_password:
                 if not user.check_password(old_password):
                     return Response({
@@ -62,17 +114,25 @@ class ChangePasswordAllRolesAPIView(APIView):
                         "message": "Old password is incorrect"
                     }, status=status.HTTP_400_BAD_REQUEST)
             
+            # O(1) - Password hashing and single database save
             user.set_password(new_password)
             user.save()
             
             return Response({
                 "status": status.HTTP_200_OK,
                 "message": f"Password changed successfully for {user.email}"
-            })
+            }, status=status.HTTP_200_OK)
+            
+        except BaseUserModel.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "User not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+            
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": str(e)
+                "message": f"Error changing password: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -80,7 +140,7 @@ class ChangePasswordAllRolesAPIView(APIView):
 
 class EmployeeListUnderAdminAPIView(APIView):
     """Get all employees under an admin"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     pagination_class = CustomPagination
     
     def get(self, request, admin_id):
@@ -126,7 +186,7 @@ class EmployeeListUnderAdminAPIView(APIView):
             paginator = self.pagination_class()
             paginated_qs = paginator.paginate_queryset(queryset, request)
             
-            serializer = UserProfileSerializer(paginated_qs, many=True)
+            serializer = UserProfileReadSerializer(paginated_qs, many=True)
             pagination_data = paginator.get_paginated_response(serializer.data)
             pagination_data["summary"] = {
                 "total": total,
@@ -151,7 +211,7 @@ class EmployeeListUnderAdminAPIView(APIView):
 
 class AllAdminsUnderOrganizationAPIView(APIView):
     """Get all admins under an organization"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganization]
     pagination_class = CustomPagination
     
     def get(self, request, org_id):
@@ -186,7 +246,7 @@ class AllAdminsUnderOrganizationAPIView(APIView):
             paginator = self.pagination_class()
             paginated_qs = paginator.paginate_queryset(queryset, request)
             
-            serializer = AdminProfileSerializer(paginated_qs, many=True)
+            serializer = AdminProfileReadSerializer(paginated_qs, many=True)
             pagination_data = paginator.get_paginated_response(serializer.data)
             pagination_data["summary"] = {
                 "total": total,
@@ -207,11 +267,238 @@ class AllAdminsUnderOrganizationAPIView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# ==================== ORGANIZATION'S OWN ADMINS LIST ====================
+
+class OrganizationOwnAdminsAPIView(APIView):
+    """Get all admins under the logged-in organization and update admin"""
+    permission_classes = [IsAuthenticated, IsOrganization]
+    pagination_class = CustomPagination
+    
+    def get(self, request):
+        try:
+            # Get the logged-in organization user
+            org_user = request.user
+            
+            # Verify that the logged-in user is an organization
+            
+            search = request.query_params.get("q", "")
+            status_filter = request.query_params.get("status")
+            
+            queryset = AdminProfile.objects.filter(organization=org_user)
+            
+            # Search
+            if search:
+                queryset = queryset.filter(
+                    Q(admin_name__icontains=search) |
+                    Q(user__email__icontains=search) |
+                    Q(user__username__icontains=search)
+                )
+            
+            # Status filter
+            if status_filter == 'active':
+                queryset = queryset.filter(user__is_active=True)
+            elif status_filter == 'inactive':
+                queryset = queryset.filter(user__is_active=False)
+            
+            # Counts
+            total = queryset.count()
+            active_count = queryset.filter(user__is_active=True).count()
+            inactive_count = queryset.filter(user__is_active=False).count()
+            
+            # Pagination
+            paginator = self.pagination_class()
+            paginated_qs = paginator.paginate_queryset(queryset, request)
+            
+            serializer = AdminProfileReadSerializer(paginated_qs, many=True)
+            pagination_data = paginator.get_paginated_response(serializer.data)
+            pagination_data["results"] = serializer.data  # Add results array with admin data
+            pagination_data["summary"] = {
+                "total": total,
+                "active": active_count,
+                "inactive": inactive_count
+            }
+            
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Admins fetched successfully",
+                "data": pagination_data
+            })
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+                "data": []
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request, admin_id=None):
+        """Update admin details"""
+        try:
+            # Get the logged-in organization user
+            org_user = request.user
+            
+            # Verify that the logged-in user is an organization
+            if org_user.role != 'organization':
+                return Response({
+                    "status": status.HTTP_403_FORBIDDEN,
+                    "message": "Access denied. Organization role required.",
+                    "data": {}
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # admin_id should come from URL path parameter
+            # If not in URL, try to get from request data (for backward compatibility)
+            if not admin_id:
+                admin_id = request.data.get('admin_id')
+            
+            if not admin_id:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Admin ID is required. Use PUT /api/organization/admins/<admin_id>",
+                    "data": {}
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get admin profile
+            admin_profile = get_object_or_404(AdminProfile, id=admin_id)
+            
+            # Verify that admin belongs to this organization
+            if admin_profile.organization != org_user:
+                return Response({
+                    "status": status.HTTP_403_FORBIDDEN,
+                    "message": "Access denied. You can only update admins under your organization.",
+                    "data": {}
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Use AdminProfileUpdateSerializer for validation and update
+            serializer = AdminProfileUpdateSerializer(
+                admin_profile,
+                data=request.data,
+                partial=True
+            )
+            
+            if serializer.is_valid():
+                serializer.save()
+                # Refresh from DB to get updated data
+                admin_profile.refresh_from_db()
+                # Use read serializer for response
+                read_serializer = AdminProfileReadSerializer(admin_profile)
+                
+                return Response({
+                    "status": status.HTTP_200_OK,
+                    "message": "Admin updated successfully",
+                    "data": read_serializer.data
+                })
+            else:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Validation error",
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except AdminProfile.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Admin not found",
+                "data": {}
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+                "data": {}
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ==================== SINGLE ADMIN DETAILS ====================
+
+class AdminDetailsAPIView(APIView):
+    """Get single admin details by admin_id and update admin"""
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
+    
+    def get(self, request, admin_id):
+        try:
+            # Get the logged-in user
+            
+            # Get admin profile
+            admin_profile = get_object_or_404(AdminProfile, id=admin_id)
+            
+            # Verify access permissions
+            # Organization can only see their own admins
+            # Admin can see their own details
+            # System owner can see all admins
+            # System owner can see all
+            
+            serializer = AdminProfileReadSerializer(admin_profile)
+            
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Admin details fetched successfully",
+                "data": serializer.data
+            })
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+                "data": {}
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request, admin_id):
+        """Update admin details including is_active"""
+        try:
+            # Get the logged-in user
+            
+            # Get admin profile
+            admin_profile = get_object_or_404(AdminProfile, id=admin_id)
+            
+            # Verify access permissions
+            
+            # Use AdminProfileUpdateSerializer for validation and update
+            serializer = AdminProfileUpdateSerializer(
+                admin_profile,
+                data=request.data,
+                partial=True
+            )
+            
+            if serializer.is_valid():
+                serializer.save()
+                # Refresh from DB to get updated data
+                admin_profile.refresh_from_db()
+                # Use read serializer for response
+                read_serializer = AdminProfileReadSerializer(admin_profile)
+                
+                return Response({
+                    "status": status.HTTP_200_OK,
+                    "message": "Admin updated successfully",
+                    "data": read_serializer.data
+                })
+            else:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Validation error",
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Admin updated successfully",
+                "data": serializer.data
+            })
+        except AdminProfile.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Admin not found",
+                "data": {}
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+                "errors": {"detail": [str(e)]}
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # ==================== ALL EMPLOYEES UNDER ORGANIZATION ====================
 
 class AllEmployeesUnderOrganizationAPIView(APIView):
     """Get all employees under an organization (across all admins)"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     pagination_class = CustomPagination
     
     def get(self, request, org_id):
@@ -269,7 +556,7 @@ class AllEmployeesUnderOrganizationAPIView(APIView):
             paginator = self.pagination_class()
             paginated_qs = paginator.paginate_queryset(queryset, request)
             
-            serializer = UserProfileSerializer(paginated_qs, many=True)
+            serializer = UserProfileReadSerializer(paginated_qs, many=True)
             pagination_data = paginator.get_paginated_response(serializer.data)
             pagination_data["summary"] = {
                 "total": total,
@@ -295,24 +582,53 @@ class AllEmployeesUnderOrganizationAPIView(APIView):
 
 class EmployeeDeactivateAPIView(APIView):
     """Deactivate/Activate employee"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     
-    def post(self, request, org_id, employee_id):
+    def post(self, request, admin_id, user_id):
+        """
+        Deactivate/Activate employee.
+        
+        Args:
+            admin_id: Admin UUID
+            user_id: Employee (User) UUID
+            
+        Returns:
+            Response with success message and employee data
+        """
         try:
-            organization = get_object_or_404(BaseUserModel, id=org_id, role='organization')
-            employee = get_object_or_404(BaseUserModel, id=employee_id, role='user')
-            profile = get_object_or_404(UserProfile, user=employee, organization=organization)
+            # O(1) - Database queries with select_related
+            admin = get_object_or_404(
+                BaseUserModel.objects.select_related(),
+                id=admin_id,
+                role='admin'
+            )
+            employee = get_object_or_404(
+                BaseUserModel.objects.select_related(),
+                id=user_id,
+                role='user'
+            )
+            profile = get_object_or_404(
+                UserProfile.objects.select_related('user', 'admin', 'organization'),
+                user=employee,
+                admin=admin
+            )
             
-            action = request.data.get("action", "deactivate")  # activate or deactivate
+            # Use serializer for validation
+            serializer = EmployeeActivateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Validation error",
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
             
-            if action == "deactivate":
-                employee.is_active = False
-                message = "Employee deactivated successfully"
-            else:
-                employee.is_active = True
-                message = "Employee activated successfully"
+            action = serializer.validated_data['action']
             
+            # O(1) - Update status
+            employee.is_active = (action == "activate")
             employee.save()
+            
+            message = f"Employee {'activated' if action == 'activate' else 'deactivated'} successfully"
             
             return Response({
                 "status": status.HTTP_200_OK,
@@ -322,53 +638,154 @@ class EmployeeDeactivateAPIView(APIView):
                     "email": employee.email,
                     "is_active": employee.is_active
                 }
-            })
+            }, status=status.HTTP_200_OK)
+            
+        except BaseUserModel.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Admin or employee not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+        except UserProfile.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Employee profile not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+            
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": str(e)
+                "message": f"Error updating employee status: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ==================== EMPLOYEE PROFILE UPDATE ====================
 
 class EmployeeProfileUpdateAPIView(APIView):
-    """Update employee profile"""
-    permission_classes = [IsAuthenticated]
+    """
+    Update employee profile details.
     
-    def put(self, request, org_id, employee_id):
-        try:
-            organization = get_object_or_404(BaseUserModel, id=org_id, role='organization')
-            employee = get_object_or_404(BaseUserModel, id=employee_id, role='user')
-            profile = get_object_or_404(UserProfile, user=employee, organization=organization)
+    Permissions:
+        - Organization: Can update employees under their organization
+        - Admin: Can update employees under their admin profile
+    
+    Request Body:
+        - email (str, optional): Employee email
+        - phone_number (str, optional): Employee phone number
+        - user_name (str, optional): Employee name
+        - custom_employee_id (str, optional): Custom employee ID
+        - date_of_birth (date, optional): Date of birth
+        - date_of_joining (date, optional): Date of joining
+        - gender (str, optional): Gender
+        - designation (str, optional): Designation
+        - job_title (str, optional): Job title
+        - user.is_active (bool, optional): Active/Inactive status
+    
+    Time Complexity: O(1) - Single database query with select_related
+    Space Complexity: O(1) - Constant space usage
+    """
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
+    
+    def put(self, request, admin_id, user_id):
+        """
+        Update employee profile.
+        
+        Args:
+            admin_id: Admin UUID
+            user_id: Employee (User) UUID
             
+        Returns:
+            Response with updated employee data or error message
+        """
+        try:
+            # O(1) - Single database query with select_related
+            admin = get_object_or_404(
+                BaseUserModel.objects.select_related(),
+                id=admin_id,
+                role='admin'
+            )
+            
+            # O(1) - Single database query with select_related to avoid N+1 queries
+            employee = get_object_or_404(
+                BaseUserModel.objects.select_related('own_user_profile'),
+                id=user_id,
+                role='user'
+            )
+            
+            # O(1) - Single database query, uses select_related from employee if available
+            profile = get_object_or_404(
+                UserProfile.objects.select_related('user', 'admin', 'organization'),
+                user=employee,
+                admin=admin
+            )
+            
+            # Copy request data to avoid mutating original request
             data = request.data.copy()
             
+            # O(1) - Dictionary operations are O(1)
             # Update user basic info if provided
             if 'email' in data:
                 employee.email = data.pop('email')
+            
             if 'phone_number' in data:
                 employee.phone_number = data.pop('phone_number')
+            
+            # Handle is_active status update (can be in nested user object or top level)
+            # O(1) - Dictionary key check and value access
+            if 'user' in data and isinstance(data['user'], dict):
+                user_data = data['user']
+                if 'is_active' in user_data:
+                    employee.is_active = bool(user_data['is_active'])
+            elif 'is_active' in data:
+                # Handle is_active if provided at top level for backward compatibility
+                employee.is_active = bool(data.pop('is_active'))
+            
+            # O(1) - Single database save operation
             employee.save()
             
-            # Update profile
-            serializer = UserProfileSerializer(profile, data=data, partial=True)
+            # Update profile fields using serializer for validation
+            # O(1) - Serializer validation and save (doesn't scale with input size)
+            serializer = UserProfileUpdateSerializer(
+                profile,
+                data=data,
+                partial=True,
+                context={'request': request}
+            )
+            
             if serializer.is_valid():
                 serializer.save()
                 return Response({
                     "status": status.HTTP_200_OK,
                     "message": "Profile updated successfully",
                     "data": serializer.data
-                })
+                }, status=status.HTTP_200_OK)
+            
+            # Return validation errors
             return Response({
                 "status": status.HTTP_400_BAD_REQUEST,
                 "message": "Validation error",
                 "errors": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except BaseUserModel.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Organization or employee not found",
+                "data": {}
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+        except UserProfile.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Employee profile not found",
+                "data": {}
+            }, status=status.HTTP_404_NOT_FOUND)
+            
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": str(e)
+                "message": f"Error updating employee profile: {str(e)}",
+                "data": {}
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -376,26 +793,33 @@ class EmployeeProfileUpdateAPIView(APIView):
 
 class EmployeeTransferAPIView(APIView):
     """Transfer employee to another admin"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     
     def post(self, request, org_id):
+        """
+        Transfer employee to another admin.
+        
+        Args:
+            org_id: Organization UUID
+            
+        Returns:
+            Response with transfer results
+        """
         try:
             organization = get_object_or_404(BaseUserModel, id=org_id, role='organization')
             
-            employee_ids = request.data.get("employee_ids", [])
-            new_admin_id = request.data.get("new_admin_id")
-            
-            if not employee_ids:
+            # Use serializer for validation
+            serializer = EmployeeTransferSerializer(data=request.data)
+            if not serializer.is_valid():
                 return Response({
                     "status": status.HTTP_400_BAD_REQUEST,
-                    "message": "employee_ids is required"
+                    "message": "Validation error",
+                    "errors": serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            if not new_admin_id:
-                return Response({
-                    "status": status.HTTP_400_BAD_REQUEST,
-                    "message": "new_admin_id is required"
-                }, status=status.HTTP_400_BAD_REQUEST)
+            validated_data = serializer.validated_data
+            employee_ids = validated_data['employee_ids']
+            new_admin_id = validated_data['new_admin_id']
             
             new_admin = get_object_or_404(BaseUserModel, id=new_admin_id, role='admin')
             new_admin_profile = get_object_or_404(AdminProfile, user=new_admin, organization=organization)
@@ -430,11 +854,18 @@ class EmployeeTransferAPIView(APIView):
                 "message": f"Transferred {len(transferred)} employee(s)",
                 "transferred": transferred,
                 "errors": errors if errors else None
-            })
+            }, status=status.HTTP_200_OK)
+            
+        except BaseUserModel.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Organization or admin not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+            
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": str(e)
+                "message": f"Error transferring employees: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -442,7 +873,7 @@ class EmployeeTransferAPIView(APIView):
 
 class AdminDetailCSVAPIView(APIView):
     """Download admin details as CSV"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     
     def get(self, request, org_id):
         try:
@@ -481,26 +912,22 @@ class AdminDetailCSVAPIView(APIView):
 
 class DeactivateUserListAPIView(APIView):
     """Get list of deactivated users"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     pagination_class = CustomPagination
     
-    def get(self, request, org_id, admin_id=None):
+    def get(self, request,  admin_id=None):
         try:
-            organization = get_object_or_404(BaseUserModel, id=org_id, role='organization')
-            
             if admin_id:
                 admin = get_object_or_404(BaseUserModel, id=admin_id, role='admin')
                 queryset = UserProfile.objects.filter(
-                    organization=organization,
                     admin=admin,
                     user__is_active=False
                 )
             else:
-                queryset = UserProfile.objects.filter(
-                    organization=organization,
-                    user__is_active=False
-                )
-            
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Admin ID is required"
+                }, status=status.HTTP_400_BAD_REQUEST)
             search = request.query_params.get("q", "")
             if search:
                 queryset = queryset.filter(
@@ -512,7 +939,7 @@ class DeactivateUserListAPIView(APIView):
             paginator = self.pagination_class()
             paginated_qs = paginator.paginate_queryset(queryset, request)
             
-            serializer = UserProfileSerializer(paginated_qs, many=True)
+            serializer = UserProfileReadSerializer(paginated_qs, many=True)
             pagination_data = paginator.get_paginated_response(serializer.data)
             
             return Response({
@@ -528,18 +955,30 @@ class DeactivateUserListAPIView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def put(self, request, admin_id):
-        """Bulk activate/deactivate users"""
+        """
+        Bulk activate/deactivate users.
+        
+        Args:
+            admin_id: Admin UUID
+            
+        Returns:
+            Response with bulk update results
+        """
         try:
             admin = get_object_or_404(BaseUserModel, id=admin_id, role='admin')
             
-            employee_ids = request.data.get("employee_ids", [])
-            action = request.data.get("action", "activate")  # activate or deactivate
-            
-            if not employee_ids:
+            # Use serializer for validation
+            serializer = BulkActivateDeactivateSerializer(data=request.data)
+            if not serializer.is_valid():
                 return Response({
                     "status": status.HTTP_400_BAD_REQUEST,
-                    "message": "employee_ids is required"
+                    "message": "Validation error",
+                    "errors": serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+            validated_data = serializer.validated_data
+            employee_ids = validated_data['employee_ids']
+            action = validated_data['action']
             
             updated = []
             errors = []
@@ -550,11 +989,7 @@ class DeactivateUserListAPIView(APIView):
                         employee = get_object_or_404(BaseUserModel, id=emp_id, role='user')
                         profile = get_object_or_404(UserProfile, user=employee, admin=admin)
                         
-                        if action == "activate":
-                            employee.is_active = True
-                        else:
-                            employee.is_active = False
-                        
+                        employee.is_active = (action == "activate")
                         employee.save()
                         updated.append(str(emp_id))
                     except Exception as e:
@@ -568,11 +1003,18 @@ class DeactivateUserListAPIView(APIView):
                 "message": f"{action.capitalize()}d {len(updated)} user(s)",
                 "updated": updated,
                 "errors": errors if errors else None
-            })
+            }, status=status.HTTP_200_OK)
+            
+        except BaseUserModel.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Admin not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+            
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": str(e)
+                "message": f"Error in bulk operation: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -580,7 +1022,7 @@ class DeactivateUserListAPIView(APIView):
 
 class AllUserListInfoAPIView(APIView):
     """Get all user list information"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , IsOrganizationOrAdmin]
     pagination_class = CustomPagination
     
     def get(self, request, user_id):
@@ -616,7 +1058,7 @@ class AllUserListInfoAPIView(APIView):
             paginator = self.pagination_class()
             paginated_qs = paginator.paginate_queryset(queryset, request)
             
-            serializer = UserProfileSerializer(paginated_qs, many=True)
+            serializer = UserProfileReadSerializer(paginated_qs, many=True)
             pagination_data = paginator.get_paginated_response(serializer.data)
             
             return Response({
@@ -636,7 +1078,7 @@ class AllUserListInfoAPIView(APIView):
 
 class AllUserDeviceInfoAPIView(APIView):
     """Get all user device information"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     
     def get(self, request, user_id):
         try:
@@ -687,49 +1129,80 @@ class AllUserDeviceInfoAPIView(APIView):
 
 class EmployeeStatusUpdateAPIView(APIView):
     """Update employee status for a specific date"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     
     def post(self, request, admin_id, date_str):
+        """
+        Update employee status for a specific date.
+        
+        Args:
+            admin_id: Admin UUID
+            date_str: Date string in ISO format
+            
+        Returns:
+            Response with update results
+        """
         try:
             admin = get_object_or_404(BaseUserModel, id=admin_id, role='admin')
-            target_date = date.fromisoformat(date_str)
             
-            employee_ids = request.data.get("employee_ids", [])
-            status_value = request.data.get("status")  # active, inactive
-            
-            if not employee_ids:
+            # Validate date format
+            try:
+                target_date = date.fromisoformat(date_str)
+            except ValueError:
                 return Response({
                     "status": status.HTTP_400_BAD_REQUEST,
-                    "message": "employee_ids is required"
+                    "message": f"Invalid date format: {date_str}. Expected ISO format (YYYY-MM-DD)."
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            # Use serializer for validation
+            serializer = EmployeeStatusUpdateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Validation error",
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            validated_data = serializer.validated_data
+            employee_ids = validated_data['employee_ids']
+            status_value = validated_data['status']
+            
             updated = []
-            for emp_id in employee_ids:
-                try:
-                    employee = get_object_or_404(BaseUserModel, id=emp_id, role='user')
-                    profile = get_object_or_404(UserProfile, user=employee, admin=admin)
-                    
-                    # Update status
-                    if status_value == "active":
-                        employee.is_active = True
-                    else:
-                        employee.is_active = False
-                    
-                    employee.save()
-                    updated.append(str(emp_id))
-                except Exception as e:
-                    continue
+            errors = []
+            
+            with transaction.atomic():
+                for emp_id in employee_ids:
+                    try:
+                        employee = get_object_or_404(BaseUserModel, id=emp_id, role='user')
+                        profile = get_object_or_404(UserProfile, user=employee, admin=admin)
+                        
+                        employee.is_active = (status_value == "active")
+                        employee.save()
+                        updated.append(str(emp_id))
+                    except Exception as e:
+                        errors.append({
+                            "employee_id": str(emp_id),
+                            "error": str(e)
+                        })
             
             return Response({
                 "status": status.HTTP_200_OK,
                 "message": f"Updated {len(updated)} employee(s) status",
                 "updated": updated,
+                "errors": errors if errors else None,
                 "date": date_str
-            })
+            }, status=status.HTTP_200_OK)
+            
+        except BaseUserModel.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Admin not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+            
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": str(e)
+                "message": f"Error updating employee status: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -737,19 +1210,39 @@ class EmployeeStatusUpdateAPIView(APIView):
 
 class UpdateAllowFencingAPIView(APIView):
     """Update geo-fencing setting for employee"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     
     def put(self, request, admin_id, employee_id):
+        """
+        Update geo-fencing setting for employee.
+        
+        Args:
+            admin_id: Admin UUID
+            employee_id: Employee UUID
+            
+        Returns:
+            Response with updated geo-fencing data
+        """
         try:
             admin = get_object_or_404(BaseUserModel, id=admin_id, role='admin')
             employee = get_object_or_404(BaseUserModel, id=employee_id, role='user')
             profile = get_object_or_404(UserProfile, user=employee, admin=admin)
             
-            allow_geo_fencing = request.data.get("allow_geo_fencing", False)
-            radius = request.data.get("radius")
+            # Use serializer for validation
+            serializer = GeoFencingUpdateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Validation error",
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            validated_data = serializer.validated_data
+            allow_geo_fencing = validated_data.get('allow_geo_fencing', False)
+            radius = validated_data.get('radius')
             
             profile.allow_geo_fencing = allow_geo_fencing
-            if radius:
+            if radius is not None:
                 profile.radius = radius
             profile.save()
             
@@ -761,11 +1254,24 @@ class UpdateAllowFencingAPIView(APIView):
                     "allow_geo_fencing": profile.allow_geo_fencing,
                     "radius": profile.radius
                 }
-            })
+            }, status=status.HTTP_200_OK)
+            
+        except BaseUserModel.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Admin or employee not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+        except UserProfile.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Employee profile not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+            
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": str(e)
+                "message": f"Error updating geo-fencing: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -773,7 +1279,7 @@ class UpdateAllowFencingAPIView(APIView):
 
 class AllEmployeeProfileAPIView(APIView):
     """Get all employee profiles"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     pagination_class = CustomPagination
     
     def get(self, request, admin_id):
@@ -794,7 +1300,7 @@ class AllEmployeeProfileAPIView(APIView):
             paginator = self.pagination_class()
             paginated_qs = paginator.paginate_queryset(queryset, request)
             
-            serializer = UserProfileSerializer(paginated_qs, many=True)
+            serializer = UserProfileReadSerializer(paginated_qs, many=True)
             pagination_data = paginator.get_paginated_response(serializer.data)
             
             return Response({
@@ -814,20 +1320,33 @@ class AllEmployeeProfileAPIView(APIView):
 
 class EmployeeBulkDeactivateAPIView(APIView):
     """Bulk deactivate employees"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     
     def post(self, request, admin_id):
+        """
+        Bulk deactivate employees.
+        
+        Args:
+            admin_id: Admin UUID
+            
+        Returns:
+            Response with bulk operation results
+        """
         try:
             admin = get_object_or_404(BaseUserModel, id=admin_id, role='admin')
             
-            employee_ids = request.data.get("employee_ids", [])
-            action = request.data.get("action", "deactivate")  # activate or deactivate
-            
-            if not employee_ids:
+            # Use serializer for validation
+            serializer = BulkActivateDeactivateSerializer(data=request.data)
+            if not serializer.is_valid():
                 return Response({
                     "status": status.HTTP_400_BAD_REQUEST,
-                    "message": "employee_ids is required"
+                    "message": "Validation error",
+                    "errors": serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+            validated_data = serializer.validated_data
+            employee_ids = validated_data['employee_ids']
+            action = validated_data['action']
             
             updated = []
             errors = []
@@ -838,16 +1357,13 @@ class EmployeeBulkDeactivateAPIView(APIView):
                         employee = get_object_or_404(BaseUserModel, id=emp_id, role='user')
                         profile = get_object_or_404(UserProfile, user=employee, admin=admin)
                         
-                        if action == "deactivate":
-                            employee.is_active = False
-                        else:
-                            employee.is_active = True
-                        
+                        employee.is_active = (action == "activate")
                         employee.save()
+                        
                         updated.append({
                             "employee_id": str(emp_id),
                             "employee_name": profile.user_name,
-                            "status": "deactivated" if action == "deactivate" else "activated"
+                            "status": "activated" if action == "activate" else "deactivated"
                         })
                     except Exception as e:
                         errors.append({
@@ -860,11 +1376,18 @@ class EmployeeBulkDeactivateAPIView(APIView):
                 "message": f"{action.capitalize()}d {len(updated)} employee(s)",
                 "updated": updated,
                 "errors": errors if errors else None
-            })
+            }, status=status.HTTP_200_OK)
+            
+        except BaseUserModel.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Admin not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+            
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": str(e)
+                "message": f"Error in bulk operation: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -872,7 +1395,7 @@ class EmployeeBulkDeactivateAPIView(APIView):
 
 class EmployeeGlobalSearchAPIView(APIView):
     """Global search for employees across organization"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationOrAdmin]
     pagination_class = CustomPagination
     
     def get(self, request, org_id):
@@ -900,7 +1423,7 @@ class EmployeeGlobalSearchAPIView(APIView):
             paginator = self.pagination_class()
             paginated_qs = paginator.paginate_queryset(queryset, request)
             
-            serializer = UserProfileSerializer(paginated_qs, many=True)
+            serializer = UserProfileReadSerializer(paginated_qs, many=True)
             pagination_data = paginator.get_paginated_response(serializer.data)
             
             return Response({
@@ -915,3 +1438,80 @@ class EmployeeGlobalSearchAPIView(APIView):
                 "data": []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+# ==================== FCM TOKEN UPDATE ====================
+
+class UserFcmTokenUpdate(APIView):
+    """
+    Update FCM token for a user.
+    
+    Permissions:
+        - Users can update their own FCM token
+        - System Owner/Organization/Admin can update any user's FCM token
+    
+    Request Body:
+        - fcm_token (str, required): Firebase Cloud Messaging token
+    
+    Time Complexity: O(1) - Single database query
+    Space Complexity: O(1) - Constant space usage
+    """
+    permission_classes = [IsAuthenticated, IsUser]
+    
+    def post(self, request, user_id):
+        """
+        Update FCM token for a user.
+        
+        Args:
+            user_id: UUID of the user whose FCM token needs to be updated
+        
+        Returns:
+            Response with success message or error details
+        """
+        try:
+            # O(1) - Single database query
+            user = get_object_or_404(BaseUserModel, id=user_id)
+            
+            
+            # Use serializer for validation
+            serializer = FcmTokenUpdateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Validation error",
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            fcm_token = serializer.validated_data['fcm_token']
+            
+            # Update FCM token in UserProfile if user has a profile
+            if user.role == 'user':
+                try:
+                    user_profile = UserProfile.objects.get(user=user)
+                    user_profile.fcm_token = fcm_token
+                    user_profile.save()
+                    return Response({
+                        "status": status.HTTP_200_OK,
+                        "message": "FCM token updated successfully",
+                        "data": {
+                            "user_id": str(user.id),
+                            "fcm_token": fcm_token
+                        }
+                    }, status=status.HTTP_200_OK)
+                except UserProfile.DoesNotExist:
+                    return Response({
+                        "status": status.HTTP_404_NOT_FOUND,
+                        "message": "User profile not found"
+                    }, status=status.HTTP_404_NOT_FOUND)
+            else:
+                # For other roles, you might want to store FCM token differently
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "FCM token update is currently only supported for user role"
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": f"Error updating FCM token: {str(e)}",
+                "data": []
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

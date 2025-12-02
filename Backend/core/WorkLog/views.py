@@ -106,8 +106,18 @@ class AttendanceCheckInOutAPIView(APIView):
                     'check_out_time': check_time,
                     'total_working_minutes': total_minutes,
                     'early_exit_minutes': early_exit,
-                    'overtime_minutes': overtime
+                    'overtime_minutes': overtime,
+                    'is_early_exit': True if (early_exit and early_exit > 0) else False
                 }
+                
+                # Add location data if provided
+                if request.data.get("check_out_latitude") and request.data.get("check_out_longitude"):
+                    update_data['check_out_latitude'] = request.data.get("check_out_latitude")
+                    update_data['check_out_longitude'] = request.data.get("check_out_longitude")
+                
+                # Add check_out_location if provided
+                if request.data.get("check_out_location"):
+                    update_data['check_out_location'] = request.data.get("check_out_location")
                 
                 # Update profile photo from selfie if provided (update on every checkout)
                 base64_images = request.data.get("base64_images")
@@ -165,8 +175,18 @@ class AttendanceCheckInOutAPIView(APIView):
                 "attendance_status": "present",
                 "marked_by": request.data.get("marked_by", "mobile"),
                 "assign_shift": str(nearest_shift.id) if nearest_shift else None,
-                "late_minutes": late_minutes or 0
+                "late_minutes": late_minutes or 0,
+                "is_late": True if (late_minutes and late_minutes > 0) else False
             }
+            
+            # Add location data if provided
+            if request.data.get("check_in_latitude") and request.data.get("check_in_longitude"):
+                payload["check_in_latitude"] = request.data.get("check_in_latitude")
+                payload["check_in_longitude"] = request.data.get("check_in_longitude")
+            
+            # Add check_in_location if provided
+            if request.data.get("check_in_location"):
+                payload["check_in_location"] = request.data.get("check_in_location")
             
             serializer = AttendanceSerializer(data=payload)
             if serializer.is_valid():

@@ -27,20 +27,22 @@ from .serializers import (
     LeaveApprovalDelegationSerializer, LeaveCalendarEventSerializer
 )
 from .leave_calculator import LeaveCalculator
-from AuthN.models import BaseUserModel, UserProfile
+from AuthN.models import BaseUserModel, UserProfile, AdminProfile
 from utils.pagination_utils import CustomPagination
 
 
 # ==================== LEAVE POLICY MANAGEMENT ====================
 
 class LeavePolicyAPIView(APIView):
-    """Leave Policy CRUD"""
+    """Leave Policy CRUD - Uses admin_id to get organization"""
     permission_classes = [IsAuthenticated]
     
-    def get(self, request, org_id, pk=None):
+    def get(self, request, admin_id, pk=None):
         """Get leave policies"""
         try:
-            organization = get_object_or_404(BaseUserModel, id=org_id, role='organization')
+            # Get admin profile and extract organization
+            admin_profile = get_object_or_404(AdminProfile, user_id=admin_id)
+            organization = admin_profile.organization
             
             if pk:
                 policy = get_object_or_404(LeavePolicy, id=pk, organization=organization)
@@ -65,12 +67,16 @@ class LeavePolicyAPIView(APIView):
                 "data": []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    def post(self, request, org_id):
+    def post(self, request, admin_id):
         """Create leave policy"""
         try:
-            organization = get_object_or_404(BaseUserModel, id=org_id, role='organization')
+            # Get admin profile and extract organization
+            admin_profile = get_object_or_404(AdminProfile, user_id=admin_id)
+            organization = admin_profile.organization
+            
             data = request.data.copy()
             data['organization'] = str(organization.id)
+            data['admin'] = str(admin_id)
             data['created_by'] = str(request.user.id) if request.user.role == 'admin' else None
             
             serializer = LeavePolicySerializer(data=data)
@@ -93,10 +99,14 @@ class LeavePolicyAPIView(APIView):
                 "data": []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    def put(self, request, org_id, pk):
+    def put(self, request, admin_id, pk):
         """Update leave policy"""
         try:
-            policy = get_object_or_404(LeavePolicy, id=pk, organization_id=org_id)
+            # Get admin profile and extract organization
+            admin_profile = get_object_or_404(AdminProfile, user_id=admin_id)
+            organization = admin_profile.organization
+            
+            policy = get_object_or_404(LeavePolicy, id=pk, organization=organization)
             serializer = LeavePolicySerializer(policy, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
