@@ -106,19 +106,6 @@ const PurchaseTransaction = () => {
           <div className="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
             <div className="my-auto mb-2">
               <h2 className="mb-1">Purchase Transaction</h2>
-              <nav>
-                <ol className="breadcrumb mb-0">
-                  <li className="breadcrumb-item">
-                    <Link to={all_routes.adminDashboard}>
-                      <i className="ti ti-smart-home" />
-                    </Link>
-                  </li>
-                  <li className="breadcrumb-item">Superadmin</li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    Purchase Transaction List
-                  </li>
-                </ol>
-              </nav>
             </div>
             <div className="d-flex my-xl-auto right-content align-items-center flex-wrap ">
               <div className="me-2 mb-2">
@@ -292,11 +279,11 @@ const PurchaseTransaction = () => {
           </div>
         </div>
         <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-          <p className="mb-0">2014 - 2025 © SmartHR.</p>
+          <p className="mb-0">2025 © NeexQ</p>
           <p>
             Designed &amp; Developed By{" "}
             <Link to="#" className="text-primary">
-              Dreams
+              NeexQ
             </Link>
           </p>
         </div>
@@ -311,7 +298,7 @@ const PurchaseTransaction = () => {
                 <div className="col-md-6">
                   <div className="mb-4">
                     <ImageWithBasePath
-                      src="assets/img/logo/logo (2).png"
+                      src="assets/img/logo/logo4.png"
                       className="img-fluid"
                       alt="logo"
                     />
@@ -339,11 +326,11 @@ const PurchaseTransaction = () => {
                 <div className="col-md-7">
                   <p className="text-dark mb-2 fw-medium fs-16">Invoice From :</p>
                   <div>
-                    <p className="mb-1">SmartHR</p>
+                    <p className="mb-1">NeexQ</p>
                     <p className="mb-1">
                       367 Hillcrest Lane, Irvine, California, United States
                     </p>
-                    <p className="mb-1">smarthr@example.com</p>
+                    <p className="mb-1">nexiq@example.com</p>
                   </div>
                 </div>
                 <div className="col-md-5">

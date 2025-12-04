@@ -2,9 +2,10 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import dayjs, { Dayjs } from "dayjs";
+import { getAdminIdForApi } from "../../../core/utils/apiHelpers";
 
 type LeavePolicyModalProps = {
-  orgId: string | null;
+  adminId: string | null;
   onPolicyAdded?: (newPolicy: any) => void;
   editingPolicy?: any;
   onPolicyUpdated?: (updatedPolicy: any) => void;
@@ -47,7 +48,7 @@ const initialFormState: LeavePolicyFormState = {
 };
 
 const LeavePolicyModal: React.FC<LeavePolicyModalProps> = ({
-  orgId,
+  adminId,
   onPolicyAdded,
   editingPolicy,
   onPolicyUpdated,
@@ -61,7 +62,7 @@ const LeavePolicyModal: React.FC<LeavePolicyModalProps> = ({
   const fetchLeaveTypes = useCallback(async () => {
     try {
       const token = sessionStorage.getItem("access_token");
-      const admin_id = sessionStorage.getItem("user_id");
+      const admin_id = adminId || getAdminIdForApi();
 
       if (!admin_id) return;
 
@@ -194,8 +195,14 @@ const LeavePolicyModal: React.FC<LeavePolicyModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!orgId) {
-      toast.error("Organization ID not found");
+    const currentAdminId = adminId || getAdminIdForApi();
+    if (!currentAdminId) {
+      const role = sessionStorage.getItem("role");
+      if (role === "organization") {
+        toast.error("Please select an admin first from the dashboard.");
+      } else {
+        toast.error("Admin ID not found. Please login again.");
+      }
       return;
     }
 
@@ -228,7 +235,7 @@ const LeavePolicyModal: React.FC<LeavePolicyModalProps> = ({
         // Update
         const policyId = editingPolicy.id;
         const response = await axios.put(
-          `http://127.0.0.1:8000/api/leave/leave-policies/${orgId}/${policyId}`,
+          `http://127.0.0.1:8000/api/leave/leave-policies/${currentAdminId}/${policyId}`,
           payload,
           {
             headers: {
@@ -256,7 +263,7 @@ const LeavePolicyModal: React.FC<LeavePolicyModalProps> = ({
       } else {
         // Create
         const response = await axios.post(
-          `http://127.0.0.1:8000/api/leave/leave-policies/${orgId}`,
+          `http://127.0.0.1:8000/api/leave/leave-policies/${currentAdminId}`,
           payload,
           {
             headers: {

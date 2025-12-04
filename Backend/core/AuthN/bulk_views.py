@@ -226,11 +226,6 @@ class BulkEmployeeRegistrationAPIView(APIView):
                             'designation': row_data.get('designation', '').strip() or None,
                             'aadhaar_number': row_data.get('aadhaar_number', '').strip() or None,
                             'pan_number': row_data.get('pan_number', '').strip() or None,
-                            'bank_account_no': row_data.get('bank_account_no', '').strip() or None,
-                            'bank_ifsc_code': row_data.get('bank_ifsc_code', '').strip() or None,
-                            'bank_name': row_data.get('bank_name', '').strip() or None,
-                            'pf_number': row_data.get('pf_number', '').strip() or None,
-                            'esic_number': row_data.get('esic_number', '').strip() or None,
                             'emergency_contact_no': row_data.get('emergency_contact_no', '').strip() or None,
                             'user': None,  # Will be set after user creation
                             'shift_id': shift_id,
@@ -272,11 +267,6 @@ class BulkEmployeeRegistrationAPIView(APIView):
                             designation=profile_data['designation'],
                             aadhaar_number=profile_data['aadhaar_number'],
                             pan_number=profile_data['pan_number'],
-                            bank_account_no=profile_data.get('bank_account_no'),
-                            bank_ifsc_code=profile_data.get('bank_ifsc_code'),
-                            bank_name=profile_data.get('bank_name'),
-                            pf_number=profile_data.get('pf_number'),
-                            esic_number=profile_data.get('esic_number'),
                             emergency_contact_no=profile_data.get('emergency_contact_no'),
                         )
                         profile_objects.append(profile)

@@ -32,9 +32,10 @@ class StaffListByAdmin(APIView):
             # counts
             total_employees = queryset.count()
             active_count = queryset.filter(user__is_active=True).count()
-            inactive_count = queryset.filter(user__is_active=False).count()
+            # Calculate inactive as total - active to avoid any discrepancies
+            inactive_count = total_employees - active_count
 
-            # pagination
+            # pagination (use filtered queryset for display)
             paginator = self.pagination_class()
             paginated_qs = paginator.paginate_queryset(queryset, request)
 

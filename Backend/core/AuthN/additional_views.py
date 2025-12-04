@@ -180,7 +180,8 @@ class EmployeeListUnderAdminAPIView(APIView):
             # Counts
             total = queryset.count()
             active_count = queryset.filter(user__is_active=True).count()
-            inactive_count = queryset.filter(user__is_active=False).count()
+            # Calculate inactive as total - active to ensure accuracy
+            inactive_count = total - active_count
             
             # Pagination
             paginator = self.pagination_class()
@@ -240,7 +241,8 @@ class AllAdminsUnderOrganizationAPIView(APIView):
             # Counts
             total = queryset.count()
             active_count = queryset.filter(user__is_active=True).count()
-            inactive_count = queryset.filter(user__is_active=False).count()
+            # Calculate inactive as total - active to ensure accuracy
+            inactive_count = total - active_count
             
             # Pagination
             paginator = self.pagination_class()
@@ -303,7 +305,8 @@ class OrganizationOwnAdminsAPIView(APIView):
             # Counts
             total = queryset.count()
             active_count = queryset.filter(user__is_active=True).count()
-            inactive_count = queryset.filter(user__is_active=False).count()
+            # Calculate inactive as total - active to ensure accuracy
+            inactive_count = total - active_count
             
             # Pagination
             paginator = self.pagination_class()
@@ -538,7 +541,8 @@ class AllEmployeesUnderOrganizationAPIView(APIView):
             # Counts
             total = queryset.count()
             active_count = queryset.filter(user__is_active=True).count()
-            inactive_count = queryset.filter(user__is_active=False).count()
+            # Calculate inactive as total - active to ensure accuracy
+            inactive_count = total - active_count
             
             # Group by admin
             admin_wise = {}

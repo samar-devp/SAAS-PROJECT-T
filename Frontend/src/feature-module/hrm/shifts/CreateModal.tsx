@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 type ServiceShiftModalProps = {
   onShiftAdded?: (newShift: any) => void;
@@ -88,7 +89,7 @@ const ServiceShiftModal: React.FC<ServiceShiftModalProps> = ({
       const token = sessionStorage.getItem("access_token");
       const admin_id = sessionStorage.getItem("user_id");
       if (!admin_id) {
-        console.warn("Admin id missing");
+        toast.error("Admin ID not found");
         return;
       }
 
@@ -102,10 +103,14 @@ const ServiceShiftModal: React.FC<ServiceShiftModalProps> = ({
           : undefined
       );
 
-      onShiftAdded?.(response.data);
+      // Backend response format: { status, message, data }
+      toast.success(response.data.message || "Shift created successfully");
+      onShiftAdded?.(response.data.data || response.data);
       resetAddForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding service shift:", error);
+      const errorMessage = error.response?.data?.message || "Failed to create shift";
+      toast.error(errorMessage, { autoClose: 6000 });
     }
   };
 
@@ -117,7 +122,7 @@ const ServiceShiftModal: React.FC<ServiceShiftModalProps> = ({
     const admin_id = sessionStorage.getItem("user_id");
 
     if (!shiftId || !admin_id) {
-      console.warn("Missing identifiers for update");
+      toast.error("Missing required information");
       return;
     }
 
@@ -134,10 +139,14 @@ const ServiceShiftModal: React.FC<ServiceShiftModalProps> = ({
           : undefined
       );
 
-      onShiftUpdated?.(response.data);
+      // Backend response format: { status, message, data }
+      toast.success(response.data.message || "Shift updated successfully");
+      onShiftUpdated?.(response.data.data || response.data);
       onEditClose?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating service shift:", error);
+      const errorMessage = error.response?.data?.message || "Failed to update shift";
+      toast.error(errorMessage, { autoClose: 6000 });
     }
   };
 

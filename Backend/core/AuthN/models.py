@@ -118,12 +118,6 @@ class UserProfile(models.Model):
     aadhaar_number = models.CharField(max_length=20, blank=True)
     pan_number = models.CharField(max_length=20, blank=True)
     referral_contact_number = models.CharField(max_length=20, blank=True)
-    bank_account_no = models.CharField(max_length=30, blank=True)
-    bank_ifsc_code = models.CharField(max_length=20, blank=True)
-    bank_name = models.CharField(max_length=100, blank=True)
-    pf_number = models.CharField(max_length=30, blank=True)
-    esic_number = models.CharField(max_length=30, blank=True)
-    bank_address = models.TextField(blank=True)
     emergency_contact_no = models.CharField(max_length=20, blank=True)
     designation = models.CharField(max_length=100, blank=True)
     user_type = models.CharField(max_length=100,choices=TYPE_CHOICES,default="employee")
@@ -175,6 +169,31 @@ class OrganizationSettings(models.Model):
     plan_name = models.CharField(max_length=100, blank=True, null=True)
     plan_assigned_date = models.DateField(null=True, blank=True)
     plan_expiry_date = models.DateField(null=True, blank=True)
+    
+    # ==================== LEAVE YEAR CONFIGURATION ====================
+    # Leave Year Type - Calendar, Financial, Custom
+    leave_year_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('calendar', 'Calendar Year (Jan-Dec)'),
+            ('financial', 'Financial Year (Apr-Mar)'),
+            ('custom', 'Custom Year')
+        ],
+        default='calendar',
+        help_text="Leave year type for leave balance calculation"
+    )
+    
+    # Leave Year Start Month (1-12)
+    leave_year_start_month = models.IntegerField(
+        default=1,
+        choices=[
+            (1, 'January'), (2, 'February'), (3, 'March'),
+            (4, 'April'), (5, 'May'), (6, 'June'),
+            (7, 'July'), (8, 'August'), (9, 'September'),
+            (10, 'October'), (11, 'November'), (12, 'December')
+        ],
+        help_text="Starting month for leave year (1-12)"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

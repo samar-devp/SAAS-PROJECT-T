@@ -1,6 +1,7 @@
 // src/core/modals/DeleteModal.tsx
 import React from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 interface DeleteModalProps {
   admin_id: string | null;
@@ -33,11 +34,21 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             }
           : undefined
       );
-      console.log("✅ Service shift deleted successfully");
+      
+      toast.success("Service shift deleted successfully");
       onDeleted?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error deleting service shift:", error);
-      alert("Failed to delete the shift");
+      
+      // Show the full error message from backend
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail || 
+                          "Failed to delete shift";
+      
+      // Display backend message (already contains proper formatting and details)
+      toast.error(errorMessage, {
+        autoClose: 6000  // Give more time to read detailed message
+      });
     }
   };
 

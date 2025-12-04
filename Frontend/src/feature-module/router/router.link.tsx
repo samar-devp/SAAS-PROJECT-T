@@ -3,17 +3,22 @@ import { all_routes } from "./all_routes";
 
 import Register from "../auth/register/register";
 import Login from "../auth/login/login";
+import ChangePassword from "../auth/change-password";
 // import Holidays from "../super-admin/hrm/holidays";
 import AdminDashboard from "../adminDashboard";
 import AttendanceAdmin from "../hrm/attendance/fetchModal";
 // import Companies from "../super-admin/companies";
 import Holidays from "../hrm/holidays/fetchModal";
 import Companies from "../super-admin/companies";
+import SystemOwnerOrganizations from "../super-admin/organizations";
+import OrganizationDashboard from "../organization/dashboard";
 import UnderConstruction from "../pages/underConstruction";
 import ServiceShifts from "../hrm/shifts/fetchModal";
 import LeaveTypes from "../hrm/leave/fetchModal";
 import LeavePolicies from "../hrm/leave-policies/fetchModal";
 import Locations from "../hrm/locations/fetchModal";
+import WeekOffs from "../hrm/week-offs/fetchModal";
+import EmployeeLeaves from "../hrm/leave-applications/EmployeeLeaves";
 
 const routes = all_routes;
 
@@ -70,11 +75,27 @@ export const publicRoutes = [
     element: <LeavePolicies />,
   },
   {
+    path: routes.employeeLeaves,
+    element: <EmployeeLeaves />,
+  },
+  {
     path: routes.workLocations,
     element: <Locations />,
+  },
+  {
+    path: routes.weekOffs,
+    element: <WeekOffs />,
   },
   {
   path: routes.attendanceadmin,
   element: <AttendanceAdmin />,
 },
+  {
+    path: routes.securitysettings,
+    element: <ChangePassword />,
+  },
+  {
+    path: routes.organizationDashboard,
+    element: <OrganizationDashboard />,
+  },
 ];

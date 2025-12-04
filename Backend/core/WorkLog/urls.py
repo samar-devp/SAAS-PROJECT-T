@@ -80,5 +80,14 @@ urlpatterns = [
         name='employee-attendance-history'
     ),
     
+    # ==================== Employee Daily Info ====================
+    
+    # GET: Employee daily info (profile + attendance)
+    # Query params: date (optional), employee_id (optional), status (optional)
+    path(
+        'employee-daily-info/<uuid:admin_id>',
+        EmployeeDailyInfoAPIView.as_view(),
+        name='employee-daily-info'
+    ),
 
 ]

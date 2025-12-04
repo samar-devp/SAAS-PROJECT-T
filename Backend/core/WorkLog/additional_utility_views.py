@@ -14,6 +14,8 @@ from datetime import datetime, date, timedelta
 
 from .models import Attendance
 from AuthN.models import BaseUserModel, UserProfile
+from .serializers import AttendanceSerializer
+from AuthN.serializers import UserProfileReadSerializer
 from utils.pagination_utils import CustomPagination
 
 
@@ -144,6 +146,145 @@ class EmployeeAttendanceHistoryAPIView(APIView):
                 "message": "Attendance history fetched successfully",
                 "data": pagination_data
             })
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+                "data": []
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class EmployeeDailyInfoAPIView(APIView):
+    """
+    Get Employee Daily Information API
+    Returns employee profile and attendance info for today
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, admin_id):
+        """
+        Get employee daily info under an admin
+        
+        Args:
+            admin_id: Admin UUID
+            
+        Query Params:
+            date (optional): Date in YYYY-MM-DD format (default: today)
+            employee_id (optional): Specific employee UUID
+            status (optional): Filter by present/absent
+            
+        Returns:
+            List of employees with their daily attendance info
+        """
+        try:
+            # Get admin
+            admin = get_object_or_404(BaseUserModel, id=admin_id, role='admin')
+            
+            # Get date from query params (default: today)
+            date_str = request.query_params.get('date')
+            if date_str:
+                try:
+                    target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": "Invalid date format. Use YYYY-MM-DD"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                target_date = date.today()
+            
+            # Get employee filter
+            employee_id = request.query_params.get('employee_id')
+            status_filter = request.query_params.get('status')  # present/absent
+            
+            # Get all employees under admin
+            employees_queryset = UserProfile.objects.filter(
+                admin=admin,
+                user__is_active=True
+            ).select_related('user')
+            
+            # Filter by specific employee
+            if employee_id:
+                employees_queryset = employees_queryset.filter(user_id=employee_id)
+            
+            employees_data = []
+            
+            for profile in employees_queryset:
+                # Get attendance for the target date
+                try:
+                    attendance = Attendance.objects.get(
+                        user=profile.user,
+                        attendance_date=target_date
+                    )
+                    attendance_data = {
+                        "id": str(attendance.id),
+                        "check_in_time": attendance.check_in_time.strftime('%H:%M:%S') if attendance.check_in_time else None,
+                        "check_out_time": attendance.check_out_time.strftime('%H:%M:%S') if attendance.check_out_time else None,
+                        "working_hours": float(attendance.working_hours) if attendance.working_hours else 0.0,
+                        "status": "present",
+                        "check_in_location": attendance.check_in_location,
+                        "check_out_location": attendance.check_out_location,
+                        "check_in_image": attendance.check_in_image.url if attendance.check_in_image else None,
+                    }
+                    is_present = True
+                except Attendance.DoesNotExist:
+                    attendance_data = {
+                        "id": None,
+                        "check_in_time": None,
+                        "check_out_time": None,
+                        "working_hours": 0.0,
+                        "status": "absent",
+                        "check_in_location": None,
+                        "check_out_location": None,
+                        "check_in_image": None,
+                    }
+                    is_present = False
+                
+                # Apply status filter
+                if status_filter:
+                    if status_filter == 'present' and not is_present:
+                        continue
+                    elif status_filter == 'absent' and is_present:
+                        continue
+                
+                # Build employee data
+                employee_info = {
+                    "employee_id": str(profile.user.id),
+                    "user_name": profile.user_name,
+                    "email": profile.user.email,
+                    "custom_employee_id": profile.custom_employee_id,
+                    "designation": profile.designation,
+                    "job_title": profile.job_title,
+                    "profile_photo": profile.profile_photo.url if profile.profile_photo else None,
+                    "phone_number": profile.user.phone_number,
+                    "date": target_date.strftime('%Y-%m-%d'),
+                    "attendance": attendance_data
+                }
+                
+                employees_data.append(employee_info)
+            
+            # Summary
+            total_employees = len(employees_queryset)
+            present_count = sum(1 for emp in employees_data if emp['attendance']['status'] == 'present')
+            absent_count = total_employees - present_count
+            
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Employee daily info fetched successfully",
+                "date": target_date.strftime('%Y-%m-%d'),
+                "summary": {
+                    "total_employees": total_employees,
+                    "present": present_count,
+                    "absent": absent_count
+                },
+                "data": employees_data
+            })
+            
+        except BaseUserModel.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Admin not found"
+            }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,

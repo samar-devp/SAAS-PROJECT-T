@@ -255,19 +255,6 @@ const AdminDashboard = () => {
           <div className="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
             <div className="my-auto mb-2">
               <h2 className="mb-1">Admin Dashboard</h2>
-              <nav>
-                <ol className="breadcrumb mb-0">
-                  <li className="breadcrumb-item">
-                    <Link to={routes.adminDashboard}>
-                      <i className="ti ti-smart-home" />
-                    </Link>
-                  </li>
-                  <li className="breadcrumb-item">Dashboard</li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    Admin Dashboard
-                  </li>
-                </ol>
-              </nav>
             </div>
             <div className="d-flex my-xl-auto right-content align-items-center flex-wrap ">
               <div className="me-2 mb-2">
@@ -3017,11 +3004,11 @@ const AdminDashboard = () => {
           </div>
         </div>
         <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-          <p className="mb-0">2014 - 2025 © SmartHR.</p>
+          <p className="mb-0">2025 © NeexQ</p>
           <p>
             Designed &amp; Developed By{" "}
             <Link to="#" className="text-primary">
-              Dreams
+              NeexQ
             </Link>
           </p>
         </div>

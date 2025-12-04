@@ -237,7 +237,8 @@ const LocationModal: React.FC<LocationModalProps> = ({
             },
           }
         );
-        toast.success("Location updated successfully!");
+        // Backend response format: { status, message, data }
+        toast.success(response.data.message || "Location updated successfully!");
         onLocationUpdated();
       } else {
         // Create new location
@@ -250,7 +251,8 @@ const LocationModal: React.FC<LocationModalProps> = ({
             },
           }
         );
-        toast.success("Location added successfully!");
+        // Backend response format: { status, message, data }
+        toast.success(response.data.message || "Location added successfully!");
         onLocationAdded();
       }
 

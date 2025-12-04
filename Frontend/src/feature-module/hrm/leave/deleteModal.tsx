@@ -32,7 +32,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         return;
       }
 
-      await axios.delete(
+      const response = await axios.delete(
         `http://127.0.0.1:8000/api/leave-types/${admin_id}/${leaveTypeId}`,
         {
           headers: {
@@ -41,7 +41,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         }
       );
       
-      toast.success("Leave type deleted successfully");
+      // Backend response format: { status, message, data }
+      toast.success(response.data.message || "Leave type deleted successfully");
       onDeleted?.();
       
       // Close modal
@@ -54,7 +55,16 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       }
     } catch (error: any) {
       console.error("Error deleting leave type:", error);
-      toast.error(error.response?.data?.message || error.response?.data?.error || "Failed to delete leave type");
+      
+      // Show the full error message from backend
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          "Failed to delete leave type";
+      
+      // Display backend message (already contains proper formatting and details)
+      toast.error(errorMessage, {
+        autoClose: 6000  // Give more time to read detailed message
+      });
     } finally {
       setLoading(false);
     }

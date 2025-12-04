@@ -58,7 +58,7 @@ const Register = () => {
                   <div className="vh-100 d-flex flex-column justify-content-between p-4 pb-0">
                     <div className=" mx-auto mb-5 text-center">
                       <ImageWithBasePath
-                        src="assets/img/logo/logo (2).png"
+                        src="assets/img/logo/logo4.png"
                         className="img-fluid"
                         alt="Logo"
                       />
@@ -216,7 +216,7 @@ const Register = () => {
                       </div>
                     </div>
                     <div className="mt-5 pb-4 text-center">
-                      <p className="mb-0 text-gray-9">Copyright © 2024 - Smarthr</p>
+                      <p className="mb-0 text-gray-9">Copyright © 2025 - NeexQ</p>
                     </div>
                   </div>
                 </form>

@@ -1,6 +1,7 @@
 export const all_routes = {
   // dashboard routes
   adminDashboard: "/index",
+  organizationDashboard: "/organization/dashboard",
   employeeDashboard: "/employee-dashboard",
   leadsDashboard: "/leads-dashboard",
   dealsDashboard: "/deals-dashboard",
@@ -8,8 +9,10 @@ export const all_routes = {
   editAttendance: "/edit-attendance/:employee_id/:id",
   leaveTypes: "/leave-types",
   leavePolicies: "/leave-policies",
+  employeeLeaves: "/employee-leaves",
   salaryStructure: "/salary-structure",
   workLocations: "/work-locations",
+  weekOffs: "/week-offs",
 
   //Application routes
   chat: "/application/chat",
@@ -31,6 +34,7 @@ export const all_routes = {
   //super admin module
   superAdminDashboard: "/super-admin/dashboard",
   superAdminCompanies: "/super-admin/companies",
+  systemOwnerOrganizations: "/system-owner/organizations",
   superAdminSubscriptions: "/super-admin/subscription",
   superAdminPackages: "/super-admin/package",
   superAdminPackagesGrid: "/super-admin/package-grid",

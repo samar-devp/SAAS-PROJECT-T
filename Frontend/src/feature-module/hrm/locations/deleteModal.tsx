@@ -32,7 +32,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         return;
       }
 
-      await axios.delete(
+      const response = await axios.delete(
         `http://127.0.0.1:8000/api/locations/${admin_id}/${locationId}`,
         {
           headers: {
@@ -41,7 +41,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         }
       );
 
-      toast.success("Location deleted successfully!");
+      // Use backend message if available
+      toast.success(response.data?.message || "Location deleted successfully!");
       onLocationDeleted();
 
       // Close modal
@@ -54,11 +55,16 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       }
     } catch (error: any) {
       console.error("Error deleting location:", error);
-      toast.error(
-        error.response?.data?.message || 
-        error.response?.data?.detail || 
-        "Failed to delete location"
-      );
+      
+      // Show the full error message from backend
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail || 
+                          "Failed to delete location";
+      
+      // Display backend message (already contains proper formatting and details)
+      toast.error(errorMessage, {
+        autoClose: 6000  // Give more time to read detailed message
+      });
     } finally {
       setLoading(false);
     }
@@ -67,10 +73,6 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   const handleCancel = () => {
     onCancel();
   };
-
-  if (locationId === null) {
-    return null;
-  }
 
   return (
     <div
@@ -111,7 +113,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               type="button"
               className="btn btn-danger"
               onClick={handleDelete}
-              disabled={loading}
+              disabled={loading || locationId === null}
             >
               {loading ? (
                 <>

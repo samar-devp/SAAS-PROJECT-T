@@ -217,117 +217,9 @@ export const SidebarDataTest = [
                 base: 'allEmployees',
               },
               {
-                label: 'Deactivated Employees',
-                link: routes.underConstruction,
-                base: 'deactivated-employees',
-              },
-              {
-                label: 'Support Tickets',
-                link: routes.underConstruction,
-                base: 'tickets',
-              },
-              {
-                label: 'Leave Management',
-                link: routes.underConstruction,
-                base: 'employee-leaves',
-              },
-            ],
-          },
-      
-          // ---------------- CRM ----------------
-          {
-            label: 'CRM',
-            link: 'index',
-            submenu: true,
-            showSubRoute: false,
-            icon: "user-shield",
-            base: "application",
-            materialicons: "user-shield",
-            submenuItems: [
-              {
-                label: 'Visitor Logs',
-                link: routes.underConstruction,
-                base: 'visitor-logs',
-              },
-              {
-                label: 'Visitor Cards',
-                link: routes.underConstruction,
-                base: 'visitor-cards',
-              },
-            ],
-          },
-      
-          // ---------------- INVOICES ----------------
-          {
-            label: 'Invoices',
-            link: 'index',
-            submenu: true,
-            showSubRoute: false,
-            icon: "receipt",
-            base: "application",
-            materialicons: "receipt",
-            submenuItems: [
-              {
-                label: 'Invoice Generator',
-                link: routes.underConstruction,
-                base: 'invoice-generator',
-              },
-            ],
-          },
-      
-          // ---------------- TASKS ----------------
-          {
-            label: 'Task Management',
-            link: 'index',
-            submenu: true,
-            showSubRoute: false,
-            icon: "checklist",
-            base: "application",
-            materialicons: "task",
-            submenuItems: [
-              {
-                label: 'Task List',
-                link: routes.underConstruction,
-                base: 'task-list',
-              },
-              {
-                label: 'Expense Tracking',
-                link: routes.underConstruction,
-                base: 'expense-list',
-              },
-            ],
-          },
-      
-          // ---------------- REPORTS ----------------
-          {
-            label: 'Reports & Analytics',
-            link: 'index',
-            submenu: false,
-            showSubRoute: false,
-            icon: "report",
-            base: "application",
-            materialicons: "report",
-          },
-      
-          // ---------------- TRACKING ----------------
-          {
-            label: 'Location Tracking',
-            link: 'index',
-            submenu: true,
-            showSubRoute: false,
-            icon: "gps",
-            base: "application",
-            materialicons: "gps_fixed",
-            submenuItems: [
-              {
-                label: 'Live Tracking',
-                link: routes.underConstruction,
-                base: 'live-location',
-              },
-              {
-                label: 'Location History',
-                link: routes.underConstruction,
-                base: 'location-history',
+                label: 'Employee Leaves',
+                link: routes.employeeLeaves,
+                base: 'employeeLeaves',
               },
             ],
           },
@@ -356,6 +248,11 @@ export const SidebarDataTest = [
                 label: 'Work Locations',
                 link: routes.workLocations,
                 base: 'locations',
+              },
+              {
+                label: 'Week Off Policies',
+                link: routes.weekOffs,
+                base: 'week-offs',
               },
               {
                 label: 'Leave Types',

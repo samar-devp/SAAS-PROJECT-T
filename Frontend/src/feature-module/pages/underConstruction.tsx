@@ -14,7 +14,7 @@ const UnderConstruction = () => {
             <div className="col-md-8 d-flex justify-content-center align-items-center mx-auto">
               <div>
                 <div className="p-4 text-center">
-                  <ImageWithBasePath src="assets/img/logo/logo (2).png" alt="logo" className="img-fluid" />
+                  <ImageWithBasePath src="assets/img/logo/logo4.png" alt="logo" className="img-fluid" />
                 </div>
                 <div className="error-images mb-4">
                   <ImageWithBasePath

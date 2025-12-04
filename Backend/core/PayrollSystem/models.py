@@ -192,6 +192,48 @@ class EmployeeBankInfo(models.Model):
 
 
 # --------------------
+# 6.1. Employee Compliance/Statutory Information
+# --------------------
+class EmployeeComplianceInfo(models.Model):
+    """Employee Statutory Compliance Information (PF, ESIC, etc.)"""
+    employee = models.OneToOneField(
+        BaseUserModel, on_delete=models.CASCADE,
+        limit_choices_to={'role': 'user'},
+        related_name='compliance_info'
+    )
+    
+    # Provident Fund (PF)
+    pf_number = models.CharField(max_length=30, blank=True, null=True, help_text="Employee PF Account Number")
+    pf_uan = models.CharField(max_length=12, blank=True, null=True, help_text="Universal Account Number (UAN)")
+    pf_previous_employer = models.BooleanField(default=False, help_text="If employee has PF from previous employer")
+    
+    # Employee State Insurance (ESI/ESIC)
+    esic_number = models.CharField(max_length=30, blank=True, null=True, help_text="Employee ESIC/ESI Number")
+    esic_ip_number = models.CharField(max_length=30, blank=True, null=True, help_text="ESI IP Number")
+    
+    # Additional Compliance Info
+    pan_number = models.CharField(max_length=10, blank=True, null=True, help_text="Permanent Account Number")
+    aadhaar_number = models.CharField(max_length=12, blank=True, null=True, help_text="Aadhaar Number")
+    
+    # Professional Tax
+    professional_tax_state = models.CharField(max_length=100, blank=True, null=True, help_text="State for Professional Tax")
+    
+    # Other Info
+    pf_nominee_name = models.CharField(max_length=255, blank=True, null=True)
+    pf_nominee_relation = models.CharField(max_length=100, blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Employee Compliance Information"
+        verbose_name_plural = "Employee Compliance Information"
+    
+    def __str__(self):
+        return f"{self.employee.email} - Compliance Info"
+
+
+# --------------------
 # 7. Payroll Settings (Organization Level)
 # --------------------
 class PayrollSettings(models.Model):

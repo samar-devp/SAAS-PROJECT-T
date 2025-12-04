@@ -5,7 +5,6 @@ from AuthN.models import *  # Import your custom BaseUserModel
 class WeekOffPolicy(models.Model):
     id = models.BigAutoField(primary_key=True)
     admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE,limit_choices_to={'role': 'admin'}, related_name="admin_week_off")
-    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE,limit_choices_to={'role': 'organization'}, related_name="organization_week_off")
     name = models.CharField(max_length=255, default="Default Week Off")
     week_off_type = models.CharField(max_length=100, help_text="e.g. Fixed, Rotational, Alternate", default="Default")
     

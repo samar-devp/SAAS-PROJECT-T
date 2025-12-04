@@ -6,7 +6,9 @@ import { all_routes } from "../../router/all_routes";
 import Table from "../../../core/common/dataTable/index";
 import LocationModal from "./CreateModal";
 import DeleteModal from "./deleteModal";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { getAdminIdForApi } from "../../../core/utils/apiHelpers";
 
 const getLocationKey = (location: any) =>
   location?.id ?? location?.location_id ?? location?.locationId ?? null;
@@ -29,10 +31,16 @@ const Locations = () => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("access_token");
-      const admin_id = sessionStorage.getItem("user_id");
+      const admin_id = getAdminIdForApi();
 
       if (!admin_id) {
-        toast.error("Admin ID not found. Please login again.");
+        const role = sessionStorage.getItem("role");
+        if (role === "organization") {
+          toast.error("Please select an admin first from the dashboard.");
+        } else {
+          toast.error("Admin ID not found. Please login again.");
+        }
+        setLoading(false);
         return;
       }
 
@@ -45,7 +53,9 @@ const Locations = () => {
         }
       );
 
-      setData(response.data ?? []);
+      // Backend response format: { status, message, data }
+      const locations = response.data.data || response.data;
+      setData(Array.isArray(locations) ? locations : []);
     } catch (error: any) {
       console.error("Error fetching locations:", error);
       toast.error(error.response?.data?.message || "Failed to fetch locations");
@@ -170,19 +180,6 @@ const Locations = () => {
           <div className="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
             <div className="my-auto mb-2">
               <h2 className="mb-1">Work Locations</h2>
-              <nav>
-                <ol className="breadcrumb mb-0">
-                  <li className="breadcrumb-item">
-                    <Link to={routes.adminDashboard}>
-                      <i className="ti ti-smart-home" />
-                    </Link>
-                  </li>
-                  <li className="breadcrumb-item">Settings</li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    Work Locations
-                  </li>
-                </ol>
-              </nav>
             </div>
             <div className="d-flex my-xl-auto right-content align-items-center flex-wrap ">
               <div className="mb-2">
@@ -217,11 +214,11 @@ const Locations = () => {
           </div>
         </div>
         <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-          <p className="mb-0">2014 - 2025 © SmartHR.</p>
+          <p className="mb-0">2025 © NeexQ</p>
           <p>
             Designed &amp; Developed By{" "}
             <Link to="#" className="text-primary">
-              Dreams
+              NeexQ
             </Link>
           </p>
         </div>
@@ -241,6 +238,20 @@ const Locations = () => {
         locationId={locationIdToDelete}
         onLocationDeleted={handleLocationDeleted}
         onCancel={() => setLocationIdToDelete(null)}
+      />
+      
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
       />
     </>
   );

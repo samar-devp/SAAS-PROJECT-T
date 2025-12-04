@@ -1,16 +1,17 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { getAdminIdForApi } from "../../../core/utils/apiHelpers";
 
 interface DeleteModalProps {
-  orgId: string | null;
+  adminId: string | null;
   policyId: string | null;
   onPolicyDeleted: () => void;
   onCancel: () => void;
 }
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
-  orgId,
+  adminId,
   policyId,
   onPolicyDeleted,
   onCancel,
@@ -23,8 +24,14 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       return;
     }
 
-    if (!orgId) {
-      toast.error("Organization ID not found");
+    const currentAdminId = adminId || getAdminIdForApi();
+    if (!currentAdminId) {
+      const role = sessionStorage.getItem("role");
+      if (role === "organization") {
+        toast.error("Please select an admin first from the dashboard.");
+      } else {
+        toast.error("Admin ID not found. Please login again.");
+      }
       return;
     }
 
@@ -35,7 +42,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
 
       // Soft delete by setting is_active to false
       await axios.put(
-        `http://127.0.0.1:8000/api/leave/leave-policies/${orgId}/${policyId}`,
+        `http://127.0.0.1:8000/api/leave/leave-policies/${currentAdminId}/${policyId}`,
         { is_active: false },
         {
           headers: {

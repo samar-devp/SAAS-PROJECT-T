@@ -7,6 +7,7 @@ import Table from "../../../core/common/dataTable/index";
 import LeavePolicyModal from "./CreateModal";
 import DeleteModal from "./deleteModal";
 import { toast } from "react-toastify";
+import { getAdminIdForApi } from "../../../core/utils/apiHelpers";
 
 const getLeavePolicyKey = (policy: any) =>
   policy?.id ?? policy?.policy_id ?? policy?.policyId ?? null;
@@ -16,51 +17,26 @@ const LeavePolicies = () => {
   const [loading, setLoading] = useState(true);
   const [policyIdToDelete, setPolicyIdToDelete] = useState<string | null>(null);
   const [editingPolicy, setEditingPolicy] = useState<any>(null);
-  const [orgId, setOrgId] = useState<string | null>(null);
+  const [adminId, setAdminId] = useState<string | null>(null);
 
-  // Get organization ID from session info
-  const fetchOrgId = useCallback(async () => {
-    try {
-      const token = sessionStorage.getItem("access_token");
-      const admin_id = sessionStorage.getItem("user_id");
-
-      if (!admin_id) {
-        toast.error("Admin ID not found. Please login again.");
-        return;
-      }
-
-      // Try to get from sessionStorage first
-      const storedOrgId = sessionStorage.getItem("organization_id");
-      if (storedOrgId) {
-        setOrgId(storedOrgId);
-        return;
-      }
-
-      // Fetch from session info API
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/session-info/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data?.success && response.data?.data?.organization_id) {
-        const org_id = response.data.data.organization_id;
-        setOrgId(org_id);
-        sessionStorage.setItem("organization_id", org_id);
+  // Get admin ID using utility function
+  useEffect(() => {
+    const admin_id = getAdminIdForApi();
+    if (admin_id) {
+      setAdminId(admin_id);
+    } else {
+      const role = sessionStorage.getItem("role");
+      if (role === "organization") {
+        toast.error("Please select an admin first from the dashboard.");
       } else {
-        toast.error("Unable to fetch organization information.");
+        toast.error("Admin ID not found. Please login again.");
       }
-    } catch (error: any) {
-      console.error("Error fetching org ID:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch organization information");
+      setLoading(false);
     }
   }, []);
 
   const fetchLeavePolicies = useCallback(async () => {
-    if (!orgId) {
+    if (!adminId) {
       return;
     }
 
@@ -69,7 +45,7 @@ const LeavePolicies = () => {
       const token = sessionStorage.getItem("access_token");
 
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/leave/leave-policies/${orgId}`,
+        `http://127.0.0.1:8000/api/leave/leave-policies/${adminId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -89,17 +65,13 @@ const LeavePolicies = () => {
     } finally {
       setLoading(false);
     }
-  }, [orgId]);
+  }, [adminId]);
 
   useEffect(() => {
-    fetchOrgId();
-  }, [fetchOrgId]);
-
-  useEffect(() => {
-    if (orgId) {
+    if (adminId) {
       fetchLeavePolicies();
     }
-  }, [orgId, fetchLeavePolicies]);
+  }, [adminId, fetchLeavePolicies]);
 
   const routes = all_routes;
   
@@ -242,19 +214,6 @@ const LeavePolicies = () => {
           <div className="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
             <div className="my-auto mb-2">
               <h2 className="mb-1">Leave Policies</h2>
-              <nav>
-                <ol className="breadcrumb mb-0">
-                  <li className="breadcrumb-item">
-                    <Link to={routes.adminDashboard}>
-                      <i className="ti ti-smart-home" />
-                    </Link>
-                  </li>
-                  <li className="breadcrumb-item">Settings</li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    Leave Policies
-                  </li>
-                </ol>
-              </nav>
             </div>
             <div className="d-flex my-xl-auto right-content align-items-center flex-wrap ">
               <div className="mb-2">
@@ -289,11 +248,11 @@ const LeavePolicies = () => {
           </div>
         </div>
         <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-          <p className="mb-0">2014 - 2025 © SmartHR.</p>
+          <p className="mb-0">2025 © NeexQ</p>
           <p>
             Designed &amp; Developed By{" "}
             <Link to="#" className="text-primary">
-              Dreams
+              NeexQ
             </Link>
           </p>
         </div>
@@ -302,7 +261,7 @@ const LeavePolicies = () => {
 
       {/* Leave Policy Create/Edit Modal */}
       <LeavePolicyModal
-        orgId={orgId}
+        adminId={adminId}
         onPolicyAdded={handlePolicyAdded}
         editingPolicy={editingPolicy}
         onPolicyUpdated={handlePolicyUpdated}
@@ -311,7 +270,7 @@ const LeavePolicies = () => {
 
       {/* Delete Modal */}
       <DeleteModal
-        orgId={orgId}
+        adminId={adminId}
         policyId={policyIdToDelete}
         onPolicyDeleted={handlePolicyDeleted}
         onCancel={() => setPolicyIdToDelete(null)}

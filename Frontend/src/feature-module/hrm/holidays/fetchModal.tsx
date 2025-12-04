@@ -6,6 +6,8 @@ import { all_routes } from "../../router/all_routes";
 import Table from "../../../core/common/dataTable/index";
 import HolidaysModal from "./CreateModal";
 import DeleteModal from "./deleteModal";
+import { getAdminIdForApi } from "../../../core/utils/apiHelpers";
+import { toast } from "react-toastify";
 
 const getHolidayKey = (holiday: any) =>
   holiday?.id ?? holiday?.holiday_id ?? holiday?.holidayId ?? null;
@@ -28,7 +30,18 @@ const Holidays = () => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("access_token");
-      const admin_id = sessionStorage.getItem("user_id");
+      const admin_id = getAdminIdForApi();
+      
+      if (!admin_id) {
+        const role = sessionStorage.getItem("role");
+        if (role === "organization") {
+          toast.error("Please select an admin first from the dashboard.");
+        } else {
+          toast.error("Admin ID not found. Please login again.");
+        }
+        setLoading(false);
+        return;
+      }
 
       const response = await axios.get(
         `http://127.0.0.1:8000/api/holidays/${admin_id}`,
@@ -42,6 +55,7 @@ const Holidays = () => {
       setData(response.data);
     } catch (error) {
       console.error("Error fetching holidays:", error);
+      toast.error("Failed to fetch holidays");
     } finally {
       setLoading(false);
     }
@@ -125,19 +139,6 @@ const Holidays = () => {
           <div className="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
             <div className="my-auto mb-2">
               <h2 className="mb-1">Holidays</h2>
-              <nav>
-                <ol className="breadcrumb mb-0">
-                  <li className="breadcrumb-item">
-                    <Link to={routes.adminDashboard}>
-                      <i className="ti ti-smart-home" />
-                    </Link>
-                  </li>
-                  <li className="breadcrumb-item">Employee</li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    Holidays
-                  </li>
-                </ol>
-              </nav>
             </div>
             <div className="d-flex my-xl-auto right-content align-items-center flex-wrap ">
               <div className="mb-2">
@@ -171,11 +172,11 @@ const Holidays = () => {
           </div>
         </div>
         <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-          <p className="mb-0">2014 - 2025 © SmartHR.</p>
+          <p className="mb-0">2025 © NeexQ</p>
           <p>
             Designed &amp; Developed By{" "}
             <Link to="#" className="text-primary">
-              Dreams
+              NeexQ
             </Link>
           </p>
         </div>

@@ -29,6 +29,8 @@ def serialize_org_settings(settings):
         "ip_restriction_enabled": settings.ip_restriction_enabled,
         "allowed_ip_ranges": settings.allowed_ip_ranges,
         "geofencing_enabled": settings.geofencing_enabled,
+        "leave_year_type": settings.leave_year_type,
+        "leave_year_start_month": settings.leave_year_start_month,
         "geofence_radius_in_meters": settings.geofence_radius_in_meters,
         "device_binding_enabled": settings.device_binding_enabled,
         "plan_name": settings.plan_name,

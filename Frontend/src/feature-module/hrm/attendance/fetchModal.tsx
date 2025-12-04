@@ -11,6 +11,7 @@ import axios from "axios";
 import { img_path } from '../../../environment';
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getAdminIdForApi } from '../../../core/utils/apiHelpers';
 
 const AttendanceAdmin = () => {
   const [data, setData] = useState([]);
@@ -36,9 +37,19 @@ const AttendanceAdmin = () => {
   const fetchAttendanceData = useCallback(async () => {
     setLoading(true);
     try {
-      const admin_id = sessionStorage.getItem("user_id");
+      // Use utility function to get correct admin_id based on role
+      // For organization: returns selected_admin_id (admin selected in dashboard)
+      // For admin: returns user_id
+      const admin_id = getAdminIdForApi();
+      
       if (!admin_id) {
+        const role = sessionStorage.getItem("role");
         console.error("Admin ID not found in session storage.");
+        if (role === "organization") {
+          toast.error("Please select an admin first from the dashboard.");
+        } else {
+          toast.error("Admin ID not found. Please login again.");
+        }
         setLoading(false);
         return;
       }
@@ -227,24 +238,14 @@ const AttendanceAdmin = () => {
     {
       title: "Assign Shift",
       dataIndex: "ShiftName",
-      sorter: (a: any, b: any) => a.shift_name.length - b.shift_name.length,
-    },
-    {
-      title: "",
-      dataIndex: "actions",
-      render: () => (
-        <div className="action-icon d-inline-flex">
-          <Link
-            to="#"
-            className="me-2"
-            data-bs-toggle="modal"
-            data-bs-target="#edit_attendance"
-          >
-            <i className="ti ti-edit" />
-          </Link>
-        </div>
-
+      render: (text: string, record: any) => (
+        <span>{record.ShiftName || '-'}</span>
       ),
+      sorter: (a: any, b: any) => {
+        const aShift = a.ShiftName || '';
+        const bShift = b.ShiftName || '';
+        return aShift.length - bShift.length;
+      },
     },
   ]
   const statusChoose = [
@@ -273,9 +274,9 @@ const AttendanceAdmin = () => {
 
   const handleExportExcel = async () => {
     try {
-      const admin_id = sessionStorage.getItem("user_id");
+      const admin_id = getAdminIdForApi();
       if (!admin_id) {
-        toast.error("Admin ID not found in session storage.");
+        toast.error("Admin ID not found. Please select an admin first.");
         return;
       }
 
@@ -425,19 +426,6 @@ const AttendanceAdmin = () => {
           <div className="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
             <div className="my-auto mb-2">
               <h2 className="mb-1">Attendance Admin</h2>
-              <nav>
-                <ol className="breadcrumb mb-0">
-                  <li className="breadcrumb-item">
-                    <Link to={all_routes.adminDashboard}>
-                      <i className="ti ti-smart-home" />
-                    </Link>
-                  </li>
-                  <li className="breadcrumb-item">Employee</li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    Attendance Admin
-                  </li>
-                </ol>
-              </nav>
             </div>
             <div className="d-flex my-xl-auto right-content align-items-center flex-wrap ">
               <div className="mb-2">
@@ -447,7 +435,7 @@ const AttendanceAdmin = () => {
                   className="btn btn-success d-flex align-items-center me-2"
                 >
                   <i className="ti ti-file-type-xls me-2" />
-                  Export Excel
+                  Download Report
                 </button>
               </div>
               <div className="ms-2 head-icons">
@@ -545,7 +533,7 @@ const AttendanceAdmin = () => {
           </div>
           <div className="card">
             <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-              <h5>Admin Attendance</h5>
+              <h5>Employee Attendance</h5>
               <div className="d-flex my-xl-auto right-content align-items-center flex-wrap row-gap-3">
                 <div className="me-3">
                   <div className="input-icon-end position-relative">
@@ -595,7 +583,7 @@ const AttendanceAdmin = () => {
           </div>
         </div>
         <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-          <p className="mb-0">2014 - 2025 © SmartHR.</p>
+          <p className="mb-0">2025 © NeexQ</p>
           <p>
             Designed &amp; Developed By{" "}
             <Link to="#" className="text-primary">

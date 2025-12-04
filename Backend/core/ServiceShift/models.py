@@ -8,7 +8,6 @@ from AuthN.models import *  # Import your custom BaseUserModel
 class ServiceShift(models.Model):
     id = models.BigAutoField(primary_key=True)
     admin = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'}, related_name="admin_shift")
-    organization = models.ForeignKey(BaseUserModel, on_delete=models.CASCADE, limit_choices_to={'role': 'organization'},related_name="organization_shift")
     shift_name = models.CharField(max_length=255, null=True, blank=True, default="Default Shift")
     start_time = models.TimeField(default=time(9, 0))
     end_time = models.TimeField(default=time(9, 0))

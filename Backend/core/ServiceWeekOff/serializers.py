@@ -14,4 +14,4 @@ class WeekOffPolicyUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeekOffPolicy
         fields = '__all__'
-        read_only_fields = ['id', 'admin', 'organization', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'admin', 'created_at', 'updated_at']

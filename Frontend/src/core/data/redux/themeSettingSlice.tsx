@@ -1,10 +1,19 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+// Set default sidebar color to darkgreen if not in localStorage
+const defaultSidebar = localStorage.getItem("dataSidebar") || "darkgreen";
+if (!localStorage.getItem("dataSidebar")) {
+  localStorage.setItem("dataSidebar", "darkgreen");
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.setAttribute("data-sidebar", "darkgreen");
+  }
+}
+
 const initialState = {
   dataLayout: localStorage.getItem("dataLayout") || "default",
   dataWidth: localStorage.getItem("dataWidth") || "fluid",
   dataCard: localStorage.getItem("dataCard") || "bordered",
-  dataSidebar: localStorage.getItem("dataSidebar") || "light",
+  dataSidebar: defaultSidebar,
   dataSidebarAll: localStorage.getItem("dataSidebarAll") || "",
   dataTopbarAll: localStorage.getItem("dataTopbarAll") || "",
   dataTopBarColorAll: localStorage.getItem("dataTopBarColorAll") || "",

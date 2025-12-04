@@ -122,8 +122,9 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({
         }
       );
 
-      toast.success("Leave type created successfully");
-      onLeaveTypeAdded?.(response.data);
+      // Backend response format: { status, message, data }
+      toast.success(response.data.message || "Leave type created successfully");
+      onLeaveTypeAdded?.(response.data.data || response.data);
       resetAddForm();
       
       // Close modal
@@ -173,8 +174,9 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({
         }
       );
 
-      toast.success("Leave type updated successfully");
-      onLeaveTypeUpdated?.(response.data);
+      // Backend response format: { status, message, data }
+      toast.success(response.data.message || "Leave type updated successfully");
+      onLeaveTypeUpdated?.(response.data.data || response.data);
       onEditClose?.();
       
       // Close modal

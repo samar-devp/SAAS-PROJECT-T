@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from 'react'
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   setDataLayout,
@@ -11,11 +11,192 @@ import {
 } from "../../data/redux/sidebarSlice";
 import { all_routes } from "../../../feature-module/router/all_routes";
 import { HorizontalSidebarData } from '../../data/json/horizontalSidebar'
+import axios from "axios";
+import { BACKEND_PATH } from "../../../environment";
+import { toast } from "react-toastify";
+
+interface Admin {
+  id: string;
+  admin_name: string;
+  user_id?: string; // From new API structure
+  email?: string; // From new API structure
+  username?: string; // From new API structure
+  phone_number?: string; // From new API structure
+  status?: boolean; // From new API structure
+  is_active?: boolean; // From new API structure
+  user?: { // For backward compatibility with nested structure
+    id: string;
+    email: string;
+    username: string;
+    phone_number: string;
+    is_active: boolean;
+  };
+  organization: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+interface AdminListResponse {
+  results: Admin[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+  summary: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+}
+
 const Header = () => {
   const routes = all_routes;
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const dataLayout = useSelector((state: any) => state.themeSetting.dataLayout);
   const Location = useLocation();
+  
+  // Admin selector state for organization role
+  const [admins, setAdmins] = useState<Admin[]>([]);
+  const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
+  const [loadingAdmins, setLoadingAdmins] = useState(false);
+  const role = sessionStorage.getItem("role");
+
+  const handleLogout = () => {
+    // Clear all session storage
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+    sessionStorage.removeItem("user_id");
+    sessionStorage.removeItem("role");
+    sessionStorage.removeItem("organization_id");
+    sessionStorage.removeItem("selected_admin_id");
+    // Navigate to login
+    navigate(routes.login);
+  };
+
+  // Fetch admins for organization role
+  const fetchAdmins = async () => {
+    if (role !== "organization") return;
+    
+    try {
+      setLoadingAdmins(true);
+      const token = sessionStorage.getItem("access_token");
+      const response = await axios.get<{ status: number; message: string; data: AdminListResponse }>(
+        `${BACKEND_PATH}organization/admins`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (response.data.status === 200 && response.data.data) {
+        const data = response.data.data;
+        let adminsList: Admin[] = [];
+        
+        if (Array.isArray(data)) {
+          adminsList = data;
+        } else if (data && typeof data === 'object' && data.results && Array.isArray(data.results)) {
+          // Map flat API response to nested structure for backward compatibility
+          adminsList = data.results.map((admin: any) => ({
+            ...admin,
+            user: admin.user || {
+              id: admin.user_id || admin.id,
+              email: admin.email || '',
+              username: admin.username || '',
+              phone_number: admin.phone_number || '',
+              is_active: admin.is_active ?? admin.status ?? true,
+            },
+            is_active: admin.is_active ?? admin.status ?? true,
+            status: admin.status ?? admin.is_active ?? true,
+          }));
+        } else {
+          adminsList = [];
+        }
+        
+        // Show all admins (both active and inactive)
+        setAdmins(adminsList);
+        
+        // Check if there's a previously selected admin in sessionStorage
+        const selectedAdminId = sessionStorage.getItem("selected_admin_id");
+        if (selectedAdminId && adminsList.length > 0) {
+          const foundAdmin = adminsList.find(a => (a.user?.id || a.user_id) === selectedAdminId);
+          if (foundAdmin) {
+            setSelectedAdmin(foundAdmin);
+          } else if (adminsList.length > 0) {
+            // Auto-select first admin if previously selected admin not found
+            const firstAdmin = adminsList[0];
+            setSelectedAdmin(firstAdmin);
+            const firstAdminUserId = firstAdmin.user?.id || firstAdmin.user_id;
+            if (firstAdminUserId) {
+              sessionStorage.setItem("selected_admin_id", firstAdminUserId);
+            }
+          }
+        } else if (adminsList.length > 0) {
+          // Auto-select first admin if no previous selection
+          const firstAdmin = adminsList[0];
+          setSelectedAdmin(firstAdmin);
+          const firstAdminUserId = firstAdmin.user?.id || firstAdmin.user_id;
+          if (firstAdminUserId) {
+            sessionStorage.setItem("selected_admin_id", firstAdminUserId);
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("Error fetching admins:", error);
+      // Don't show toast error in header to avoid disruption
+    } finally {
+      setLoadingAdmins(false);
+    }
+  };
+
+  // Fetch admins on mount if organization role
+  useEffect(() => {
+    if (role === "organization") {
+      fetchAdmins();
+    }
+  }, [role]);
+
+  // Handle admin selection change
+  const handleAdminSelectionChange = (adminId: string) => {
+    const admin = admins.find(a => a.id === adminId);
+    if (admin) {
+      setSelectedAdmin(admin);
+      const userId = admin.user?.id || admin.user_id;
+      if (userId) {
+        sessionStorage.setItem("selected_admin_id", userId);
+        toast.success(`Switched to admin: ${admin.admin_name}`);
+        // Refresh page after a brief delay to reload data with new admin
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    }
+  };
+
+  // Add custom styles for profile dropdown and page background
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .profile-dropdown .dropdown-item:hover {
+        background-color: #f8f9fa !important;
+        transform: translateX(4px);
+      }
+      .profile-dropdown .dropdown-item.text-danger:hover {
+        background-color: #fee !important;
+      }
+      /* Page background color - light gray instead of pure white */
+      body, .page-wrapper, .content {
+        background-color:rgb(255, 255, 255) !important;
+      }
+      .page-wrapper .content {
+        background-color:rgb(236, 236, 236) !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const [subOpen, setSubopen] = useState<any>("");
   const [subsidebar, setSubsidebar] = useState("");
@@ -84,10 +265,10 @@ const Header = () => {
 
 				<div className="header-left">
 					<Link to={routes.adminDashboard} className="logo">
-						<ImageWithBasePath src="assets/img/logo/logo (2).png" alt="Logo"   className="login-logo"/>
+						<ImageWithBasePath src="assets/img/logo/logo4.png" alt="Logo"   className="login-logo"/>
 					</Link>
 					<Link to={routes.adminDashboard} className="dark-logo">
-						<ImageWithBasePath src="assets/img/logo-white.svg" alt="Logo"/>
+						<ImageWithBasePath src="assets/img/logo/logo4.png" alt="Logo"/>
 					</Link>
 				</div>
 
@@ -222,155 +403,115 @@ const Header = () => {
 							</div>
 						</div>
 
-						<div className="d-flex align-items-center">
-							<div className="me-1 notification_item">
-								<Link to="#" className="btn btn-menubar position-relative me-1" id="notification_popup"
-									data-bs-toggle="dropdown">
-									<i className="ti ti-bell"></i>
-									<span className="notification-status-dot"></span>
-								</Link>
-								<div className="dropdown-menu dropdown-menu-end notification-dropdown p-4">
-									<div
-										className="d-flex align-items-center justify-content-between border-bottom p-0 pb-3 mb-3">
-										<h4 className="notification-title">Notifications (2)</h4>
-										<div className="d-flex align-items-center">
-											<Link to="#" className="text-primary fs-15 me-3 lh-1">Mark all as read</Link>
-											<div className="dropdown">
-												<Link to="#" className="bg-white dropdown-toggle"
-													data-bs-toggle="dropdown">
-													<i className="ti ti-calendar-due me-1"></i>Today
-												</Link>
-												<ul className="dropdown-menu mt-2 p-3">
-													<li>
-														<Link to="#" className="dropdown-item rounded-1">
-															This Week
-														</Link>
-													</li>
-													<li>
-														<Link to="#" className="dropdown-item rounded-1">
-															Last Week
-														</Link>
-													</li>
-													<li>
-														<Link to="#" className="dropdown-item rounded-1">
-															Last Month
-														</Link>
-													</li>
-												</ul>
-											</div>
-										</div>
-									</div>
-									<div className="noti-content">
-										<div className="d-flex flex-column">
-											<div className="border-bottom mb-3 pb-3">
-												<Link to={routes.activity}>
-													<div className="d-flex">
-														<span className="avatar avatar-lg me-2 flex-shrink-0">
-															<ImageWithBasePath src="assets/img/profiles/avatar-27.jpg" alt="Profile"/>
-														</span>
-														<div className="flex-grow-1">
-															<p className="mb-1"><span
-																	className="text-dark fw-semibold">Shawn</span>
-																performance in Math is below the threshold.</p>
-															<span>Just Now</span>
-														</div>
-													</div>
-												</Link>
-											</div>
-											<div className="border-bottom mb-3 pb-3">
-												<Link to={routes.activity} className="pb-0">
-													<div className="d-flex">
-														<span className="avatar avatar-lg me-2 flex-shrink-0">
-															<ImageWithBasePath src="assets/img/profiles/avatar-23.jpg" alt="Profile"/>
-														</span>
-														<div className="flex-grow-1">
-															<p className="mb-1"><span
-																	className="text-dark fw-semibold">Sylvia</span> added
-																appointment on 02:00 PM</p>
-															<span>10 mins ago</span>
-															<div
-																className="d-flex justify-content-start align-items-center mt-1">
-																<span className="btn btn-light btn-sm me-2">Deny</span>
-																<span className="btn btn-primary btn-sm">Approve</span>
-															</div>
-														</div>
-													</div>
-												</Link>
-											</div>
-											<div className="border-bottom mb-3 pb-3">
-												<Link to={routes.activity}>
-													<div className="d-flex">
-														<span className="avatar avatar-lg me-2 flex-shrink-0">
-															<ImageWithBasePath src="assets/img/profiles/avatar-25.jpg" alt="Profile"/>
-														</span>
-														<div className="flex-grow-1">
-															<p className="mb-1">New student record <span className="text-dark fw-semibold"> George</span> 
-																is created by <span className="text-dark fw-semibold">Teressa</span>
-															</p>
-															<span>2 hrs ago</span>
-														</div>
-													</div>
-												</Link>
-											</div>
-											<div className="border-0 mb-3 pb-0">
-												<Link to={routes.activity}>
-													<div className="d-flex">
-														<span className="avatar avatar-lg me-2 flex-shrink-0">
-															<ImageWithBasePath src="assets/img/profiles/avatar-01.jpg" alt="Profile"/>
-														</span>
-														<div className="flex-grow-1">
-															<p className="mb-1">A new teacher record for <span className="text-dark fw-semibold">Elisa</span> </p>
-															<span>09:45 AM</span>
-														</div>
-													</div>
-												</Link>
-											</div>
-										</div>
-									</div>
-									<div className="d-flex p-0">
-										<Link to="#" className="btn btn-light w-100 me-2">Cancel</Link>
-										<Link to={routes.activity} className="btn btn-primary w-100">View All</Link>
-									</div>
-								</div>
-							</div>
-							<div className="dropdown profile-dropdown">
-								<Link to="#" className="dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
-									<span className="avatar avatar-sm online">
-										<ImageWithBasePath src="assets/img/profiles/avatar-12.jpg" alt="Img" className="img-fluid rounded-circle"/>
+					<div className="d-flex align-items-center gap-3">
+						{/* Admin Selector for Organization Role */}
+						{role === "organization" && (
+							<div className="dropdown">
+								<button
+									className="btn btn-light dropdown-toggle d-flex align-items-center"
+									type="button"
+									id="adminSelectorDropdown"
+									data-bs-toggle="dropdown"
+									aria-expanded="false"
+									disabled={loadingAdmins || admins.length === 0}
+									style={{
+										minWidth: '200px',
+										justifyContent: 'space-between',
+										borderRadius: '8px',
+										fontSize: '14px'
+									}}
+								>
+									<span className="d-flex align-items-center">
+										<i className="ti ti-user-shield me-2"></i>
+										{loadingAdmins ? (
+											<span>Loading...</span>
+										) : selectedAdmin ? (
+											<span>{selectedAdmin.admin_name}</span>
+										) : (
+											<span>Select Admin</span>
+										)}
 									</span>
-								</Link>
-								<div className="dropdown-menu shadow-none">
-									<div className="card mb-0">
-										<div className="card-header">
-											<div className="d-flex align-items-center">
-												<span className="avatar avatar-lg me-2 avatar-rounded">
-													<ImageWithBasePath src="assets/img/profiles/avatar-12.jpg" alt="img"/>
-												</span>
-												<div>
-													<h5 className="mb-0">Kevin Larry</h5>
-													<p className="fs-12 fw-medium mb-0">warren@example.com</p>
-												</div>
-											</div>
+								</button>
+								<ul
+									className="dropdown-menu dropdown-menu-end"
+									aria-labelledby="adminSelectorDropdown"
+									style={{ minWidth: '250px', maxHeight: '400px', overflowY: 'auto' }}
+								>
+									<li>
+										<h6 className="dropdown-header">Select Admin</h6>
+									</li>
+									{admins.length === 0 ? (
+										<li>
+											<span className="dropdown-item-text text-muted">No admins available</span>
+										</li>
+									) : (
+										admins.map((admin) => (
+											<li key={admin.id}>
+												<button
+													className={`dropdown-item d-flex align-items-center ${
+														selectedAdmin?.id === admin.id ? 'active' : ''
+													}`}
+													onClick={() => handleAdminSelectionChange(admin.id)}
+													style={{ cursor: 'pointer' }}
+												>
+													<i className="ti ti-check me-2" style={{ 
+														visibility: selectedAdmin?.id === admin.id ? 'visible' : 'hidden' 
+													}}></i>
+													<div className="flex-grow-1">
+														<div className="fw-medium">{admin.admin_name}</div>
+														<small className="text-muted">
+															{admin.user?.email || admin.user?.username || ''}
+														</small>
+													</div>
+												</button>
+											</li>
+										))
+									)}
+									{admins.length > 0 && (
+										<>
+											<li><hr className="dropdown-divider" /></li>
+											<li>
+												<Link
+													className="dropdown-item d-flex align-items-center"
+													to={routes.organizationDashboard}
+												>
+													<i className="ti ti-dashboard me-2"></i>
+													<span>Go to Dashboard</span>
+												</Link>
+											</li>
+										</>
+									)}
+								</ul>
+							</div>
+						)}
+						
+						<div className="dropdown profile-dropdown">
+							<Link to="#" className="dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
+								<span className="avatar avatar-md online">
+									<ImageWithBasePath src="assets/img/profiles/avatar-12.jpg" alt="Img" className="img-fluid rounded-circle"/>
+								</span>
+							</Link>
+								<div className="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0" style={{ minWidth: '200px', borderRadius: '8px' }}>
+									<div className="card mb-0 border-0">
+										<div className="card-body p-3">
+											<Link className="dropdown-item d-flex align-items-center px-3 py-2 rounded mb-2" to={routes.securitysettings} style={{ transition: 'all 0.3s ease' }}>
+												<i className="ti ti-lock me-3" style={{ fontSize: '20px' }}></i>
+												<span className="fw-medium">Change Password</span>
+											</Link>
 										</div>
-										<div className="card-body">
-											<Link className="dropdown-item d-inline-flex align-items-center p-0 py-2" to={routes.profile}>
-												<i className="ti ti-user-circle me-1"></i>My Profile
+										<div className="card-footer border-top p-3 pt-2">
+											<Link 
+												className="dropdown-item d-flex align-items-center px-3 py-2 rounded text-danger" 
+												to="#" 
+												onClick={(e) => {
+													e.preventDefault();
+													handleLogout();
+												}}
+												style={{ transition: 'all 0.3s ease', cursor: 'pointer' }}
+											>
+												<i className="ti ti-logout me-3" style={{ fontSize: '20px' }}></i>
+												<span className="fw-medium">Logout</span>
 											</Link>
-											<Link className="dropdown-item d-inline-flex align-items-center p-0 py-2" to={routes.bussinessSettings}>
-												<i className="ti ti-settings me-1"></i>Settings
-											</Link>
-											<Link className="dropdown-item d-inline-flex align-items-center p-0 py-2" to={routes.securitysettings}>
-												<i className="ti ti-status-change me-1"></i>Status
-											</Link>
-											<Link className="dropdown-item d-inline-flex align-items-center p-0 py-2" to={routes.profilesettings}>
-												<i className="ti ti-circle-arrow-up me-1"></i>My Account
-											</Link>
-											<Link className="dropdown-item d-inline-flex align-items-center p-0 py-2" to={routes.knowledgebase}>
-												<i className="ti ti-question-mark me-1"></i>Knowledge Base
-											</Link>
-										</div>
-										<div className="card-footer">
-											<Link className="dropdown-item d-inline-flex align-items-center p-0 py-2" to={routes.login}><i className="ti ti-login me-2"></i>Logout</Link>
 										</div>
 									</div>
 								</div>
@@ -384,9 +525,17 @@ const Header = () => {
 						<i className="fa fa-ellipsis-v"></i>
 					</Link>
 					<div className="dropdown-menu dropdown-menu-end">
-						<Link className="dropdown-item" to={routes.profile}>My Profile</Link>
-						<Link className="dropdown-item" to={routes.profilesettings}>Settings</Link>
-						<Link className="dropdown-item" to={routes.login}>Logout</Link>
+						<Link className="dropdown-item" to={routes.securitysettings}>Change Password</Link>
+						<Link 
+							className="dropdown-item" 
+							to="#" 
+							onClick={(e) => {
+								e.preventDefault();
+								handleLogout();
+							}}
+						>
+							Logout
+						</Link>
 					</div>
 				</div>
 

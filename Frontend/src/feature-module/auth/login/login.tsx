@@ -2,9 +2,9 @@ import { BACKEND_PATH } from "../../../environment";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import ImageWithBasePath from "../../../core/common/imageWithBasePath";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { all_routes } from "../../router/all_routes";
 type PasswordField = "password";
 
@@ -12,15 +12,11 @@ const Login = () => {
   const routes = all_routes;
   const navigation = useNavigate();
 
-  const navigationPath = () => {
-    navigation(routes.adminDashboard);
-  };
-  // Email, password, error aur password visibility ke state
-  const [username, setUsername] = useState(""); // Email input ka value
-  const [password, setPassword] = useState(""); // Password input ka value
-  const [error, setError] = useState<string | null>(null); // Error message agar login fail ho
+  // State management
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [passwordVisibility, setPasswordVisibility] = useState({
-    password: false, // Initially password hidden hoga
+    password: false,
   });
 
   const togglePasswordVisibility = (field: PasswordField) => {
@@ -30,33 +26,37 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    console.log("________________API CALLED");
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
     try {
       const response = await axios.post(`${BACKEND_PATH}login`, {
         username,
         password,
       });
-      const { access, refresh } = response.data;
       // ✅ Destructure response
       const { access_token, refresh_token, user_id, role } = response.data;
 
-      if (role != "admin"){
-        toast.error("Login failed");
-      } 
-      else{
+      // Allow admin, system_owner, and organization to login
+      if (role !== "admin" && role !== "system_owner" && role !== "organization") {
+        toast.error("Access denied. Valid privileges required.");
+        return;
+      }
+
       // ✅ Store tokens and user data
       sessionStorage.setItem("access_token", access_token);
       sessionStorage.setItem("refresh_token", refresh_token);
       sessionStorage.setItem("user_id", user_id);
       sessionStorage.setItem("role", role);
-      navigation(routes.adminDashboard);
+      
+      // Navigate based on role
+      if (role === "system_owner") {
+        navigation(routes.systemOwnerOrganizations);
+      } else if (role === "organization") {
+        navigation(routes.organizationDashboard);
+      } else {
+        navigation(routes.adminDashboard);
       }
-      // Navigate to admin dashboard
     } catch (err: any) {
-      console.log("_____________error");
       toast.error(err.response?.data?.error || "Login failed");
     }
   };
@@ -114,11 +114,11 @@ const Login = () => {
           <div className="col-lg-7 col-md-12 col-sm-12">
             <div className="row justify-content-center align-items-center vh-100 overflow-auto flex-wrap">
               <div className="col-md-7 mx-auto vh-100">
-                <form className="vh-100">
+                <form onSubmit={handleSubmit} className="vh-100">
                   <div className="vh-100 d-flex flex-column justify-content-between p-4 pb-0">
                     <div className=" mx-auto mb-5 text-center">
                       <ImageWithBasePath
-                        src="assets/img/logo/logo (2).png"
+                        src="assets/img/logo/logo4.png"
                         className="img-fluid"
                         alt="Logo"
                       />
@@ -135,10 +135,10 @@ const Login = () => {
                         <div className="input-group">
                           <input
                             type="text"
-                            defaultValue=""
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             className="form-control border-end-0"
+                            required
                           />
                           <span className="input-group-text border-start-0">
                             <i className="ti ti-mail" />
@@ -164,6 +164,7 @@ const Login = () => {
                                 : "ti-eye-off"
                             }`}
                             onClick={() => togglePasswordVisibility("password")}
+                            style={{ cursor: "pointer" }}
                           ></span>
                         </div>
                       </div>
@@ -171,7 +172,6 @@ const Login = () => {
                         <button
                           type="submit"
                           className="btn btn-primary w-100"
-                          onClick={handleSubmit}
                         >
                           Sign In
                         </button>

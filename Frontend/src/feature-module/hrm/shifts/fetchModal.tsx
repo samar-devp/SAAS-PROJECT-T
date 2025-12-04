@@ -6,6 +6,9 @@ import { all_routes } from "../../router/all_routes";
 import Table from "../../../core/common/dataTable/index";
 import ServiceShiftModal from "./CreateModal";
 import DeleteModal from "./deleteModal";
+import { getAdminIdForApi } from "../../../core/utils/apiHelpers";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const getShiftKey = (shift: any) =>
   shift?.id ?? shift?.shift_id ?? shift?.shiftId ?? null;
@@ -28,7 +31,18 @@ const ServiceShifts = () => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("access_token");
-      const admin_id = sessionStorage.getItem("user_id");
+      const admin_id = getAdminIdForApi();
+      
+      if (!admin_id) {
+        const role = sessionStorage.getItem("role");
+        if (role === "organization") {
+          toast.error("Please select an admin first from the dashboard.");
+        } else {
+          toast.error("Admin ID not found. Please login again.");
+        }
+        setLoading(false);
+        return;
+      }
 
       const response = await axios.get(
         `http://127.0.0.1:8000/api/service-shifts/${admin_id}`,
@@ -39,9 +53,12 @@ const ServiceShifts = () => {
         }
       );
 
-      setData(response.data ?? []);
+      // Backend response format: { status, message, data }
+      const shifts = response.data.data || response.data;
+      setData(Array.isArray(shifts) ? shifts : []);
     } catch (error) {
       console.error("Error fetching service shifts:", error);
+      toast.error("Failed to fetch service shifts");
     } finally {
       setLoading(false);
     }
@@ -141,19 +158,6 @@ const ServiceShifts = () => {
           <div className="d-md-flex d-block align-items-center justify-content-between page-breadcrumb mb-3">
             <div className="my-auto mb-2">
               <h2 className="mb-1">Service Shifts</h2>
-              <nav>
-                <ol className="breadcrumb mb-0">
-                  <li className="breadcrumb-item">
-                    <Link to={routes.adminDashboard}>
-                      <i className="ti ti-smart-home" />
-                    </Link>
-                  </li>
-                  <li className="breadcrumb-item">Employee</li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    Service Shifts
-                  </li>
-                </ol>
-              </nav>
             </div>
             <div className="d-flex my-xl-auto right-content align-items-center flex-wrap ">
               <div className="mb-2">
@@ -187,11 +191,11 @@ const ServiceShifts = () => {
           </div>
         </div>
         <div className="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-          <p className="mb-0">2014 - 2025 © SmartHR.</p>
+          <p className="mb-0">2025 © NeexQ</p>
           <p>
             Designed &amp; Developed By{" "}
             <Link to="#" className="text-primary">
-              Dreams
+              NeexQ
             </Link>
           </p>
         </div>
@@ -233,6 +237,20 @@ const ServiceShifts = () => {
           setShiftIdToDelete(null);
           fetchServiceShift();
         }}
+      />
+      
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
       />
     </>
   );
