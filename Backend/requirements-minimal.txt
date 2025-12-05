@@ -1,0 +1,56 @@
+# ============================================
+# Minimal Requirements (Without OCR)
+# ============================================
+# Use this if you don't need OCR functionality
+# This will significantly reduce installation size
+# ============================================
+
+# Core Django Framework
+Django==5.2.8
+asgiref==3.11.0
+sqlparse==0.5.3
+tzdata==2025.2
+
+# Django REST Framework
+djangorestframework==3.16.1
+djangorestframework-simplejwt==5.5.1
+PyJWT==2.10.1
+
+# CORS & Security
+django-cors-headers==4.9.0
+
+# Celery (Background Tasks)
+celery==5.5.3
+kombu==5.5.4
+vine==5.1.0
+billiard==4.2.3
+amqp==5.3.1
+
+# Redis (Cache & Celery Broker)
+redis==7.1.0
+
+# Excel File Handling
+openpyxl==3.1.5
+et-xmlfile==2.0.0
+
+# Image Processing
+Pillow==12.0.0
+
+# Utilities
+python-dateutil==2.9.0.post0
+PyYAML==6.0.3
+click==8.3.1
+click-didyoumean==0.3.1
+click-plugins==1.1.1.2
+click-repl==0.3.0
+colorama==0.4.6
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+packaging==25.0
+prompt-toolkit==3.0.52
+six==1.17.0
+typing-extensions==4.15.0
+wcwidth==0.2.14
+filelock==3.20.0
+ninja==1.13.0
+

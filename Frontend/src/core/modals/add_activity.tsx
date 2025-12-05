@@ -3,7 +3,6 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import CommonSelect from '../common/commonSelect';
 import { beforeuse, company, contacts, deals, guests, owner } from '../common/selectoption/selectoption';
-import { label } from 'yet-another-react-lightbox/*';
 
 const AddActivity = () => {
 
