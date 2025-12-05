@@ -195,11 +195,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
         write_only=False
     )
     custom_employee_id = serializers.CharField(required=True, max_length=255)
+    is_active = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
         fields = "__all__"
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'is_active']
+    
+    def get_is_active(self, obj):
+        """Return user is_active status"""
+        return obj.user.is_active if obj.user else None
     
     def validate(self, attrs):
         """Validate that phone_number, date_of_joining, and gender are provided for user role"""

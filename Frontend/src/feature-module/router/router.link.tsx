@@ -19,6 +19,12 @@ import LeavePolicies from "../hrm/leave-policies/fetchModal";
 import Locations from "../hrm/locations/fetchModal";
 import WeekOffs from "../hrm/week-offs/fetchModal";
 import EmployeeLeaves from "../hrm/leave-applications/EmployeeLeaves";
+import Visits from "../crm/visit/fetchModal";
+import VisitMap from "../crm/visit/VisitMap";
+import Contacts from "../crm/contact/index";
+import Invoices from "../invoice/index";
+import AddInvoice from "../invoice/add-invoice";
+import InvoicePDFView from "../invoice/invoice-pdf-view";
 
 const routes = all_routes;
 
@@ -97,5 +103,41 @@ export const publicRoutes = [
   {
     path: routes.organizationDashboard,
     element: <OrganizationDashboard />,
+  },
+  {
+    path: routes.visit,
+    element: <Visits />,
+  },
+  {
+    path: routes.visitMap,
+    element: <VisitMap />,
+  },
+  {
+    path: routes.contactGrid,
+    element: <Contacts />,
+  },
+  {
+    path: routes.contactList,
+    element: <Contacts />,
+  },
+  {
+    path: routes.deactivatedEmployees,
+    element: <Companies />,
+  },
+  {
+    path: routes.invoices,
+    element: <Invoices />,
+  },
+  {
+    path: routes.addInvoice,
+    element: <AddInvoice />,
+  },
+  {
+    path: routes.editInvoice,
+    element: <AddInvoice />,
+  },
+  {
+    path: routes.invoiceDetails,
+    element: <InvoicePDFView />,
   },
 ];

@@ -217,9 +217,60 @@ export const SidebarDataTest = [
                 base: 'allEmployees',
               },
               {
+                label: 'Deactivated Employees',
+                link: routes.deactivatedEmployees,
+                base: 'deactivatedEmployees',
+              },
+              {
                 label: 'Employee Leaves',
                 link: routes.employeeLeaves,
                 base: 'employeeLeaves',
+              },
+            ],
+          },
+      
+          // ---------------- CRM ----------------
+          {
+            label: 'CRM',
+            link: 'index',
+            submenu: true,
+            showSubRoute: false,
+            icon: "briefcase",
+            base: "crm",
+            materialicons: "business",
+            submenuItems: [
+              {
+                label: 'Contact',
+                link: routes.contactGrid,
+                base: 'contact',
+              },
+              {
+                label: 'Visit',
+                link: routes.visit,
+                base: 'visit',
+              },
+              {
+                label: 'Visit Map',
+                link: routes.visitMap,
+                base: 'visit-map',
+              },
+            ],
+          },
+      
+          // ---------------- BILLING ----------------
+          {
+            label: 'Billing',
+            link: 'index',
+            submenu: true,
+            showSubRoute: false,
+            icon: "receipt",
+            base: "application",
+            materialicons: "receipt",
+            submenuItems: [
+              {
+                label: 'Invoice',
+                link: routes.invoices,
+                base: 'invoice',
               },
             ],
           },

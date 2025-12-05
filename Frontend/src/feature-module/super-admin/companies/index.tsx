@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { all_routes } from "../../router/all_routes";
 import PredefinedDateRanges from "../../../core/common/datePicker";
 import { companies_details } from "../../../core/data/json/companiesdetails";
@@ -25,10 +25,18 @@ import AssignWeekOffModal from "../../hrm/week-off-assignment/AssignWeekOffModal
 
 type PasswordField = "password" | "confirmPassword";
 const Companies = () => {
+  const location = useLocation();
   const [organizationName, setOrganizationName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [data, setData] = useState([]);
+  const [deactivatedData, setDeactivatedData] = useState([]);
+  const [activeTab, setActiveTab] = useState<'active' | 'deactivated'>(
+    location.pathname === all_routes.deactivatedEmployees ? 'deactivated' : 'active'
+  );
+  const [loadingDeactivated, setLoadingDeactivated] = useState(false);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   type SummaryType = {
   total: number;
   active: number;
@@ -174,6 +182,146 @@ const Companies = () => {
     fetchCompanies();
   }, []);
 
+  // Fetch deactivated employees
+  const fetchDeactivatedEmployees = async (search: string = "") => {
+    setLoadingDeactivated(true);
+    try {
+      const token = sessionStorage.getItem("access_token");
+      const admin_id = getAdminIdForApi();
+      
+      if (!admin_id) {
+        const role = sessionStorage.getItem("role");
+        if (role === "organization") {
+          toast.error("Please select an admin first from the dashboard.");
+        } else {
+          toast.error("Admin ID not found. Please login again.");
+        }
+        setLoadingDeactivated(false);
+        return;
+      }
+
+      let url = `${BACKEND_PATH}deactivate_list/${admin_id}`;
+      if (search) {
+        url += `?q=${encodeURIComponent(search)}`;
+      }
+
+      const response = await axios.get(
+        url,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      let deactivatedEmployees = [];
+      if (response.data && response.data.data) {
+        if (response.data.data.results && Array.isArray(response.data.data.results)) {
+          deactivatedEmployees = response.data.data.results;
+        } else if (Array.isArray(response.data.data)) {
+          deactivatedEmployees = response.data.data;
+        }
+      } else if (Array.isArray(response.data)) {
+        deactivatedEmployees = response.data;
+      }
+      
+      setDeactivatedData(deactivatedEmployees);
+      setLoadingDeactivated(false);
+    } catch (error: any) {
+      console.error("Error fetching deactivated employees:", error);
+      toast.error(error.response?.data?.message || "Failed to fetch deactivated employees");
+      setLoadingDeactivated(false);
+    }
+  };
+
+  // Set active tab based on route
+  useEffect(() => {
+    if (location.pathname === all_routes.deactivatedEmployees) {
+      setActiveTab('deactivated');
+    } else if (location.pathname === all_routes.adminDashboard || location.pathname === '/index') {
+      setActiveTab('active');
+    }
+  }, [location.pathname]);
+
+  // Fetch deactivated employees when tab changes
+  useEffect(() => {
+    if (activeTab === 'deactivated') {
+      fetchDeactivatedEmployees(searchQuery);
+    } else {
+      // Clear search when switching to active tab
+      setSearchQuery("");
+    }
+  }, [activeTab]);
+
+  // Bulk activate/deactivate employees
+  const handleBulkActivateDeactivate = async (action: 'activate' | 'deactivate') => {
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee");
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem("access_token");
+      const admin_id = getAdminIdForApi();
+      
+      if (!admin_id) {
+        toast.error("Admin ID not found");
+        return;
+      }
+
+      const response = await axios.put(
+        `${BACKEND_PATH}deactivate_list_update/${admin_id}`,
+        {
+          employee_ids: selectedEmployees,
+          action: action
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data?.status === 200) {
+        toast.success(`Successfully ${action === 'activate' ? 'activated' : 'deactivated'} ${selectedEmployees.length} employee(s)`);
+        setSelectedEmployees([]);
+        
+        // Refresh data
+        if (activeTab === 'active') {
+          const fetchCompanies = async () => {
+            try {
+              const token = sessionStorage.getItem("access_token");
+              const admin_id = getAdminIdForApi();
+              if (!admin_id) return;
+
+              const response = await axios.get(
+                `${BACKEND_PATH}staff-list/${admin_id}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
+              setData(response.data.results);
+              setSummary(response.data.summary);
+            } catch (error) {
+              console.error("Error refreshing employee list:", error);
+            }
+          };
+          fetchCompanies();
+        } else {
+          fetchDeactivatedEmployees(searchQuery);
+        }
+      } else {
+        toast.error(response.data?.message || `Failed to ${action} employees`);
+      }
+    } catch (error: any) {
+      console.error(`Error ${action}ing employees:`, error);
+      toast.error(error.response?.data?.message || `Failed to ${action} employees`);
+    }
+  };
+
   // Helper function to get initials from name
   const getInitials = (name: string) => {
     if (!name) return "U";
@@ -232,7 +380,7 @@ const Companies = () => {
     );
   };
 
-  console.log(data); const columns = [
+  const columns = [
     {
       title: "Employee Name",
       dataIndex: "user_name",
@@ -1247,12 +1395,172 @@ const Companies = () => {
           <div className="card">
             <div className="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
               <h5>Employees List</h5>
+              {activeTab === 'deactivated' && selectedEmployees.length > 0 && (
+                <div className="d-flex gap-2">
+                  <button
+                    className="btn btn-sm btn-success"
+                    onClick={() => handleBulkActivateDeactivate('activate')}
+                  >
+                    <i className="ti ti-check me-1" />
+                    Activate Selected ({selectedEmployees.length})
+                  </button>
+                </div>
+              )}
             </div>
             <div className="card-body p-0">
-              <Table
-                dataSource={data}
-                columns={columns}
-              />
+              {/* Tabs */}
+              <ul className="nav nav-tabs border-bottom" role="tablist">
+                <li className="nav-item" role="presentation">
+                  <button
+                    className={`nav-link ${activeTab === 'active' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('active')}
+                    type="button"
+                  >
+                    Active Employees
+                  </button>
+                </li>
+                <li className="nav-item" role="presentation">
+                  <button
+                    className={`nav-link ${activeTab === 'deactivated' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('deactivated')}
+                    type="button"
+                  >
+                    Deactivated Employees
+                  </button>
+                </li>
+              </ul>
+              
+              {/* Tab Content */}
+              <div className="tab-content p-3">
+                {activeTab === 'active' ? (
+                  <Table
+                    dataSource={data}
+                    columns={columns}
+                    loading={loading}
+                    rowKey={(record: any) => record.user?.id || record.user_id || record.id}
+                  />
+                ) : (
+                  <>
+                    {/* Search Bar for Deactivated Employees */}
+                    <div className="mb-3">
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Search by name, employee ID, or email..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <button
+                          className="btn btn-outline-secondary"
+                          type="button"
+                          onClick={() => fetchDeactivatedEmployees(searchQuery)}
+                        >
+                          <i className="ti ti-search" />
+                        </button>
+                        {searchQuery && (
+                          <button
+                            className="btn btn-outline-secondary"
+                            type="button"
+                            onClick={() => {
+                              setSearchQuery("");
+                              fetchDeactivatedEmployees("");
+                            }}
+                          >
+                            <i className="ti ti-x" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <Table
+                      dataSource={deactivatedData}
+                      columns={columns.map(col => {
+                      if (col.key === 'edit') {
+                        return {
+                          ...col,
+                          title: 'Actions',
+                          render: (_: any, record: any) => (
+                            <div className="d-flex gap-2">
+                              <button
+                                className="btn btn-sm btn-success"
+                                onClick={async () => {
+                                  try {
+                                    const token = sessionStorage.getItem("access_token");
+                                    const admin_id = getAdminIdForApi();
+                                    if (!admin_id) return;
+
+                                    await axios.put(
+                                      `${BACKEND_PATH}deactivate_list_update/${admin_id}`,
+                                      {
+                                        employee_ids: [record.user?.id || record.user_id || record.id],
+                                        action: 'activate'
+                                      },
+                                      {
+                                        headers: {
+                                          Authorization: `Bearer ${token}`,
+                                          "Content-Type": "application/json",
+                                        },
+                                      }
+                                    );
+                                    toast.success("Employee activated successfully");
+                                    fetchDeactivatedEmployees(searchQuery);
+                                    
+                                    // Refresh active employees list and summary
+                                    const fetchCompanies = async () => {
+                                      try {
+                                        const token = sessionStorage.getItem("access_token");
+                                        const admin_id = getAdminIdForApi();
+                                        if (!admin_id) return;
+
+                                        const response = await axios.get(
+                                          `${BACKEND_PATH}staff-list/${admin_id}`,
+                                          {
+                                            headers: {
+                                              Authorization: `Bearer ${token}`,
+                                            },
+                                          }
+                                        );
+                                        setData(response.data.results);
+                                        setSummary(response.data.summary);
+                                      } catch (error) {
+                                        console.error("Error refreshing employee list:", error);
+                                      }
+                                    };
+                                    fetchCompanies();
+                                  } catch (error: any) {
+                                    toast.error(error.response?.data?.message || "Failed to activate employee");
+                                  }
+                                }}
+                              >
+                                <i className="ti ti-check me-1" />
+                                Activate
+                              </button>
+                            </div>
+                          ),
+                        };
+                      }
+                      return col;
+                    })}
+                    loading={loadingDeactivated}
+                    rowKey={(record: any) => record.user?.id || record.user_id || record.id}
+                    rowSelection={
+                      userRole === "admin"
+                        ? {
+                            type: 'checkbox',
+                            selectedRowKeys: selectedEmployees,
+                            onChange: (selectedRowKeys: React.Key[]) => {
+                              setSelectedEmployees(selectedRowKeys as string[]);
+                            },
+                            getCheckboxProps: (record: any) => ({
+                              name: record.user?.id || record.user_id || record.id,
+                            }),
+                          }
+                        : undefined
+                    }
+                  />
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

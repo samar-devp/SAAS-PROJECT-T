@@ -19,7 +19,9 @@ class StaffListByAdmin(APIView):
             search = request.query_params.get("q", None)
 
             # base queryset
-            queryset = UserProfile.objects.filter(admin_id=admin_id)
+            queryset = UserProfile.objects.filter(admin_id=admin_id, user__is_active=True)
+            queryset_active_deactive_users = UserProfile.objects.filter(admin_id=admin_id)
+
 
             # optional search
             if search:
@@ -30,7 +32,7 @@ class StaffListByAdmin(APIView):
                 )
 
             # counts
-            total_employees = queryset.count()
+            total_employees = queryset_active_deactive_users.count()
             active_count = queryset.filter(user__is_active=True).count()
             # Calculate inactive as total - active to avoid any discrepancies
             inactive_count = total_employees - active_count

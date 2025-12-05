@@ -39,8 +39,7 @@ urlpatterns = [
     path('api/broadcast/', include("BroadcastManagement.urls")),
     path('api/notification/', include("NotificationControl.urls")),
     path('api/helpdesk/', include("HelpdeskManagement.urls")),
-    path('api/performance/', include("PerformanceManagement.urls")),
-    path('api/onboarding/', include("OnboardingManagement.urls")),
-    path('api/analytics/', include("HRAnalytics.urls")),
     path('api/organization/', include("OrganizationManagement.urls")),
+    path('api/contact/', include("ContactManagement.urls")),
+    path('api/', include("InvoiceManagement.urls")),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

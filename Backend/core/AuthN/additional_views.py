@@ -726,29 +726,22 @@ class EmployeeProfileUpdateAPIView(APIView):
             # Copy request data to avoid mutating original request
             data = request.data.copy()
             
-            # O(1) - Dictionary operations are O(1)
-            # Update user basic info if provided
-            if 'email' in data:
-                employee.email = data.pop('email')
-            
-            if 'phone_number' in data:
-                employee.phone_number = data.pop('phone_number')
-            
             # Handle is_active status update (can be in nested user object or top level)
             # O(1) - Dictionary key check and value access
             if 'user' in data and isinstance(data['user'], dict):
                 user_data = data['user']
                 if 'is_active' in user_data:
-                    employee.is_active = bool(user_data['is_active'])
+                    # Extract is_active to top level for serializer
+                    data['is_active'] = bool(user_data['is_active'])
+                # Remove user key from data as serializer doesn't expect it
+                data.pop('user', None)
             elif 'is_active' in data:
                 # Handle is_active if provided at top level for backward compatibility
-                employee.is_active = bool(data.pop('is_active'))
-            
-            # O(1) - Single database save operation
-            employee.save()
+                data['is_active'] = bool(data['is_active'])
             
             # Update profile fields using serializer for validation
             # O(1) - Serializer validation and save (doesn't scale with input size)
+            # The serializer will handle email, phone_number, and is_active updates
             serializer = UserProfileUpdateSerializer(
                 profile,
                 data=data,
@@ -757,6 +750,7 @@ class EmployeeProfileUpdateAPIView(APIView):
             )
             
             if serializer.is_valid():
+                # Save through serializer which will update both profile and user (including is_active, email, phone_number)
                 serializer.save()
                 return Response({
                     "status": status.HTTP_200_OK,
@@ -923,7 +917,7 @@ class DeactivateUserListAPIView(APIView):
         try:
             if admin_id:
                 admin = get_object_or_404(BaseUserModel, id=admin_id, role='admin')
-                queryset = UserProfile.objects.filter(
+                queryset = UserProfile.objects.select_related('user', 'admin', 'organization').filter(
                     admin=admin,
                     user__is_active=False
                 )
@@ -945,6 +939,7 @@ class DeactivateUserListAPIView(APIView):
             
             serializer = UserProfileReadSerializer(paginated_qs, many=True)
             pagination_data = paginator.get_paginated_response(serializer.data)
+            pagination_data["results"] = serializer.data  # Add results array to pagination data
             
             return Response({
                 "status": status.HTTP_200_OK,

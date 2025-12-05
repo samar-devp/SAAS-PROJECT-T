@@ -67,10 +67,9 @@ LOCAL_APPS = [
     'BroadcastManagement',
     'NotificationControl',
     'HelpdeskManagement',
-    'PerformanceManagement',
-    'OnboardingManagement',
-    'HRAnalytics',
     'OrganizationManagement',
+    'ContactManagement',
+    'InvoiceManagement',
     ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

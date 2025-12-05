@@ -10,6 +10,7 @@ export const all_routes = {
   leaveTypes: "/leave-types",
   leavePolicies: "/leave-policies",
   employeeLeaves: "/employee-leaves",
+  deactivatedEmployees: "/deactivated-employees",
   salaryStructure: "/salary-structure",
   workLocations: "/work-locations",
   weekOffs: "/week-offs",
@@ -30,6 +31,10 @@ export const all_routes = {
   socialFeed: "/application/social-feed",
   kanbanView: "/application/kanban-view",
   invoice: "/application/invoices",
+  invoices: "/invoices",
+  addInvoice: "/invoices/add",
+  editInvoice: "/invoices/edit/:id",
+  invoiceDetails: "/invoices/view/:id",
 
   //super admin module
   superAdminDashboard: "/super-admin/dashboard",
@@ -318,8 +323,6 @@ export const all_routes = {
   expense: "/accounts/expense",
   expenseCategory: "/accounts/expense-category",
   
-  addInvoice: "/accounts/add-invoice",
-  editInvoice: "/accounts/edit-invoice",
   categories: "/accounting/categories",
   budgets: "/accounting/budgets",
   budgetexpenses: "/accounting/budgets-expenses",
@@ -354,6 +357,8 @@ export const all_routes = {
   pipeline: "/pipeline",
   analytics: "/analytics",
   activities: "/",
+  visit: "/crm/visit",
+  visitMap: "/crm/visit-map",
 
   //HRM
   employeeList: "/employees",
@@ -382,7 +387,6 @@ export const all_routes = {
   refferal: "/refferals",
   //FINANCE & ACCOUNTS
   estimate: "/estimates",
-  invoices:"/invoices",
   addinvoice:"/add-invoices",
   editinvoice:"/edit-invoices",
   invoicesdetails:"/invoice-details",
@@ -390,7 +394,6 @@ export const all_routes = {
   expenses: "/expenses",
   providentfund: "/provident-fund",
   taxes: "/taxes",
-  invoiceDetails: "/invoice-details",
   employeesalary: "/employee-salary",
   payslip: "/payslip",
   payrollAddition: "/payroll",

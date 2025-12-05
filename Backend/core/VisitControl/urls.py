@@ -4,21 +4,20 @@ Visit Management URLs
 
 from django.urls import path
 from .views import (
-    VisitAssignmentAPIView, VisitStartEndAPIView,
-    VisitTemplateAPIView, VisitReportAPIView
+    VisitAPIView, VisitCheckInAPIView, VisitCheckOutAPIView, VisitStatsAPIView
 )
-from .additional_utility_views import *
 
 urlpatterns = [
-    path('visits/<uuid:admin_id>', VisitAssignmentAPIView.as_view(), name='visit-list-create'),
-    path('visits/<uuid:admin_id>/<uuid:pk>', VisitAssignmentAPIView.as_view(), name='visit-detail'),
-    path('visit-start-end/<uuid:visit_id>', VisitStartEndAPIView.as_view(), name='visit-start-end'),
-    path('visit-templates/<uuid:admin_id>', VisitTemplateAPIView.as_view(), name='visit-template-list-create'),
-    path('visit-templates/<uuid:admin_id>/<uuid:pk>', VisitTemplateAPIView.as_view(), name='visit-template-detail'),
-    path('visit-reports/<uuid:admin_id>', VisitReportAPIView.as_view(), name='visit-reports'),
+    # Visit CRUD Operations
+    path('visit-list-create/<uuid:admin_id>', VisitAPIView.as_view(), name='visit-list-create'),
+    path('visit-list-create-by-user/<uuid:admin_id>/<uuid:user_id>', VisitAPIView.as_view(), name='visit-list-create-by-user'),
+    path('visit-detail-update-delete/<uuid:admin_id>/<uuid:user_id>/<int:pk>', VisitAPIView.as_view(), name='visit-detail-update-delete'),
     
-    # Additional Utility APIs
-    path('dashboard/<str:org_id>', VisitDashboardAPIView.as_view(), name='visit-dashboard'),
-    path('employee-visits/<str:org_id>/<str:employee_id>', EmployeeVisitListAPIView.as_view(), name='employee-visits'),
+    # Check-in/Check-out Operations
+    path('visit-check-in/<uuid:admin_id>/<uuid:user_id>/<int:visit_id>', VisitCheckInAPIView.as_view(), name='visit-check-in'),
+    path('visit-check-out/<uuid:admin_id>/<uuid:user_id>/<int:visit_id>', VisitCheckOutAPIView.as_view(), name='visit-check-out'),
+    
+    # Statistics
+    path('visit-stats/<uuid:admin_id>', VisitStatsAPIView.as_view(), name='visit-stats'),
+    path('visit-stats-by-user/<uuid:admin_id>/<uuid:user_id>', VisitStatsAPIView.as_view(), name='visit-stats-by-user'),
 ]
-
